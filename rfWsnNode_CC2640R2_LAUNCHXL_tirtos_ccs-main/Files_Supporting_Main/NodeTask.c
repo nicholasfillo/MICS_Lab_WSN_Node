@@ -156,22 +156,6 @@ uint32_t timer_val = 0;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /***** Variable declarations *****/
 static Task_Params nodeTaskParams; Task_Struct nodeTask; /* Not static so you can see in ROV */
 static uint8_t nodeTaskStack[NODE_TASK_STACK_SIZE]; Event_Struct nodeEvent; /* Not static so you can see in ROV */
@@ -217,113 +201,93 @@ static void adcCallback(uint16_t adcValue[], uint16_t size);
 static void buttonCallback(PIN_Handle handle, PIN_Id pinId);
 
 /***** Function definitions *****/
-void NodeTask_init(void)
-{
+void NodeTask_init(void) {
 
-/* Create event used internally for state changes */
-Event_Params eventParam;
-Event_Params_init(&eventParam);
-Event_construct(&nodeEvent, &eventParam);
-nodeEventHandle = Event_handle(&nodeEvent);
+    /* Create event used internally for state changes */
+    Event_Params eventParam;
+    Event_Params_init(&eventParam);
+    Event_construct(&nodeEvent, &eventParam);
+    nodeEventHandle = Event_handle(&nodeEvent);
 
-/* Create clock object which is used for fast report timeout */
-Clock_Params clkParams;
-Clock_Params_init(&clkParams);
+    /* Create clock object which is used for fast report timeout */
+    Clock_Params clkParams;
+    Clock_Params_init(&clkParams);
 
-clkParams.period = 10;
-clkParams.startFlag = 1;
-Clock_construct(&fastReportTimeoutClock, fastReportTimeoutCallback, 1, &clkParams);
-fastReportTimeoutClockHandle = Clock_handle(&fastReportTimeoutClock);
+    clkParams.period = 10;
+    clkParams.startFlag = 1;
+    Clock_construct(&fastReportTimeoutClock, fastReportTimeoutCallback, 1, &clkParams);
+    fastReportTimeoutClockHandle = Clock_handle(&fastReportTimeoutClock);
 
-/* Create the node task */
-Task_Params_init(&nodeTaskParams);
-nodeTaskParams.stackSize = NODE_TASK_STACK_SIZE;
-nodeTaskParams.priority = NODE_TASK_PRIORITY;
-nodeTaskParams.stack = &nodeTaskStack;
-Task_construct(&nodeTask, nodeTaskFunction, &nodeTaskParams, NULL);
+    /* Create the node task */
+    Task_Params_init(&nodeTaskParams);
+    nodeTaskParams.stackSize = NODE_TASK_STACK_SIZE;
+    nodeTaskParams.priority = NODE_TASK_PRIORITY;
+    nodeTaskParams.stack = &nodeTaskStack;
+    Task_construct(&nodeTask, nodeTaskFunction, &nodeTaskParams, NULL);
 }
 
-static void nodeTaskFunction(UArg arg0, UArg arg1)
-{
+    static void nodeTaskFunction(UArg arg0, UArg arg1) {
 
-/* Initialize display and try to open both UART and LCD types of display. */
-Display_Params params; Display_Params_init(&params); params.lineClearMode = DISPLAY_CLEAR_BOTH;
+    /* Initialize display and try to open both UART and LCD types of display. */
+    Display_Params params; Display_Params_init(&params); params.lineClearMode = DISPLAY_CLEAR_BOTH;
 
-/* Open both an available LCD display and an UART display.
- * Whether the open call is successful depends on what is present in the
- * Display_config[] array of the board file.
- *
- * Removed hDisplayLCD
- *
- * Note that for SensorTag evaluation boards combined with the SHARP96x96
- * Watch DevPack, there is a pin conflict with UART such that one must be
- * excluded, and UART is preferred by default. To display on the Watch
- * DevPack, add the precompiler define BOARD_DISPLAY_EXCLUDE_UART.
- */
-hDisplaySerial = Display_open(Display_Type_UART, &params);
-/* Check if the selected Display type was found and successfully opened */
-if (hDisplaySerial)
-{
-    Display_printf(hDisplaySerial, 0, 0, "Waiting for SCE ADC reading...");
-}
-/* Open LED pins */
-ledPinHandle = PIN_open(&ledPinState, pinTable);
-if (!ledPinHandle)
-{
-    System_abort("Error initializing board 3.3V domain pins\n");
-}
+    /* Open both an available LCD display and an UART display.
+    * Whether the open call is successful depends on what is present in the
+    * Display_config[] array of the board file.
+    *
+    * Removed hDisplayLCD
+    *
+    * Note that for SensorTag evaluation boards combined with the SHARP96x96
+    * Watch DevPack, there is a pin conflict with UART such that one must be
+    * excluded, and UART is preferred by default. To display on the Watch
+    * DevPack, add the precompiler define BOARD_DISPLAY_EXCLUDE_UART.
+    */
+    hDisplaySerial = Display_open(Display_Type_UART, &params);
+    /* Check if the selected Display type was found and successfully opened */
+    if (hDisplaySerial)
+    {
+        Display_printf(hDisplaySerial, 0, 0, "Waiting for SCE ADC reading...");
+    }
+    /* Open LED pins */
+    ledPinHandle = PIN_open(&ledPinState, pinTable);
+    if (!ledPinHandle)
+    {
+        System_abort("Error initializing board 3.3V domain pins\n");
+    }
 
-buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
-if (!buttonPinHandle)
-{
-    System_abort("Error initializing button pins\n");
-}
-/* Setup callback for button pins */
-if (PIN_registerIntCb(buttonPinHandle, &buttonCallback) != 0)
-{
-    System_abort("Error registering button callback function");
-}
-
-//while (1) {
-///* Wait for event */
-//uint32_t events = Event_pend(nodeEventHandle, 0, NODE_EVENT_ALL, BIOS_WAIT_FOREVER);
-///* If new ADC value, send this data */
-//if (events & NODE_EVENT_NEW_ADC_VALUE) {
-///* Toggle activity LED */
-//#if !defined Board_CC1350STK
-//PIN_setOutputValue(ledPinHandle, NODE_ACTIVITY_LED,!PIN_getOutputValue(NODE_ACTIVITY_LED));
-//#endif
-///* Send ADC value to concentrator */
-//NodeRadioTask_sendAdcData(latestAdcValue); //change to array
-//
-///* Update display */
-//updateLcd(); // change so lcd displays multiple adc values
-//sleep(1);
-//}
-//}
+    buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
+    if (!buttonPinHandle)
+    {
+        System_abort("Error initializing button pins\n");
+    }
+    /* Setup callback for button pins */
+    if (PIN_registerIntCb(buttonPinHandle, &buttonCallback) != 0)
+    {
+        System_abort("Error registering button callback function");
+    }
 }
 
 /* not used */
-static void updateLcd(void)
-{
+static void updateLcd(void) {
 
-static bool firstDisplay = true;
-/* get node address if not already done */
-if (firstDisplay == true)
-{
-    nodeAddress = nodeRadioTask_getNodeAddr();
-}
-/* Print to UART clear screen, put cursor to beginning of terminal and print the header */
-if(firstDisplay == true)
-{
-    Display_printf(hDisplaySerial, 0, 0,"Node ID: 0x%02x", nodeAddress);
-    Display_printf(hDisplaySerial, 1, 0,"Channel 1    Channel 2    Channel 3    Channel 4    Channel5    Countervalue");
-    firstDisplay = false;
-}
-Display_printf(hDisplaySerial, 0, 0, "%04d",latestAdcValue[9]);
+    static bool firstDisplay = true;
+    /* get node address if not already done */
+    if (firstDisplay == true)
+    {
+        nodeAddress = nodeRadioTask_getNodeAddr();
+    }
+    /* Print to UART clear screen, put cursor to beginning of terminal and print the header */
+    if(firstDisplay == true)
+    {
+        Display_printf(hDisplaySerial, 0, 0,"Node ID: 0x%02x", nodeAddress);
+        Display_printf(hDisplaySerial, 1, 0,"Channel 1    Channel 2    Channel 3    Channel 4    Channel5    Countervalue");
+        firstDisplay = false;
+    }
+    Display_printf(hDisplaySerial, 0, 0, "%04d",latestAdcValue[9]);
 
-/* TALK TO THE OTHERS ABOUT THIS CALLBACK */
+    /* TALK TO THE OTHERS ABOUT THIS CALLBACK */
 }
+
 static void adcCallback(uint16_t adcValue[], uint16_t size) //change to array
 {
 
@@ -336,25 +300,25 @@ static void adcCallback(uint16_t adcValue[], uint16_t size) //change to array
  *  Pin interrupt Callback function board buttons configured in the pinTable.
  */
 static void buttonCallback(PIN_Handle handle, PIN_Id pinId) {
-/* Debounce logic, only toggle if the button is still pushed (low) */
-CPUdelay(8000*50);
+    /* Debounce logic, only toggle if the button is still pushed (low) */
+    CPUdelay(8000*50);
 
-if (PIN_getInputValue(Board_PIN_BUTTON0) == 0) {
-//start fast report and timeout
-SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_FAST, NODE_ADCTASK_CHANGE_MASK); Clock_start(fastReportTimeoutClockHandle); }
+    if (PIN_getInputValue(Board_PIN_BUTTON0) == 0) {
+    //start fast report and timeout
+    SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_FAST, NODE_ADCTASK_CHANGE_MASK); Clock_start(fastReportTimeoutClockHandle); }
 
-else if (PIN_getInputValue(Board_PIN_BUTTON1) == 0) {
-/* update display */
-//Event_post(nodeEventHandle, NODE_EVENT_UPDATE_LCD);
+    else if (PIN_getInputValue(Board_PIN_BUTTON1) == 0) {
+    /* update display */
+    //Event_post(nodeEventHandle, NODE_EVENT_UPDATE_LCD);
 
-//start fast report and timeout
-SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_FAST, NODE_ADCTASK_CHANGE_MASK); Clock_start(fastReportTimeoutClockHandle); }
+    //start fast report and timeout
+    SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_FAST, NODE_ADCTASK_CHANGE_MASK); Clock_start(fastReportTimeoutClockHandle); }
 
 }
 
 static void fastReportTimeoutCallback(UArg arg0) {
-//stop fast report
-SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_SLOW, NODE_ADCTASK_CHANGE_MASK);
+    //stop fast report
+    SceAdc_setReportInterval(NODE_ADCTASK_REPORTINTERVAL_SLOW, NODE_ADCTASK_CHANGE_MASK);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////adc single channel
@@ -363,61 +327,46 @@ void timerCallback(GPTimerCC26XX_Handle handle, GPTimerCC26XX_IntMask interruptM
     // interrupt callback code goes here. Minimize processing in interrupt.
     proceed = true;
     Event_post(nodeEventHandle, NODE_EVENT_TIMER);
-
 }
 
 
-void init_indv_adc(ADC_Handle adc, ADC_Params params, CC2640R2_LAUNCHXL_ADCName adcname)
-{
+void init_indv_adc(ADC_Handle adc, ADC_Params params, CC2640R2_LAUNCHXL_ADCName adcname) {
     adc = ADC_open(adcname, &params);
-    if (adc == NULL)
-    {
+    if (adc == NULL) {
     Display_printf(display, 0, 0, "Error initializing ADC0\n");
-    //while (1);
     }
 }
 
 void init_all_adc()
 {
+    ADC_init();
+    ADC_Params params;
+    ADC_Params_init(&params);
+    //adc1=adc_open(Board_ADC1, &params);
+    adc1 = ADC_open(Board_ADC0, &params);
+    if (adc1 == NULL) {
+        Display_printf(display, 0, 0, "Error initializing ADC0\n");
+    }
 
-   ADC_init();
-   ADC_Params params;
-   ADC_Params_init(&params);
-   adc1 = ADC_open(Board_ADC0, &params);
-   if (adc1 == NULL)
-   {
-   Display_printf(display, 0, 0, "Error initializing ADC0\n");
-   //while (1);
-   }
+    adc2 = ADC_open( CC2640R2_LAUNCHXL_ADC1, &params);
+    if (adc2 == NULL) {
+        Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    }
 
+    adc3 = ADC_open(CC2640R2_LAUNCHXL_ADC2, &params);
+    if (adc3 == NULL) {
+        Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    }
 
-   adc2 = ADC_open( CC2640R2_LAUNCHXL_ADC1, &params);
-   //adc1=adc_open(Board_ADC1, &params);
-   if (adc2 == NULL)
-   {
-       Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-   //while (1);
-   }
+    adc4 = ADC_open( CC2640R2_LAUNCHXL_ADC3, &params);
+    if (adc4 == NULL) { 
+        Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");  //Error Initializing adc4???
+    }
 
-   adc3 = ADC_open(CC2640R2_LAUNCHXL_ADC2, &params);
-   //adc1=adc_open(Board_ADC1, &params);
-   if (adc3 == NULL)
-   {
-       Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-       //while (1);
-   }
-   adc4 = ADC_open( CC2640R2_LAUNCHXL_ADC3, &params);
-   //adc1=adc_open(Board_ADC1, &params);
-   if (adc4 == NULL)
-   { Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-   //while (1);
-   }
-   adc5 = ADC_open( CC2640R2_LAUNCHXL_ADC4, &params);
-   //adc1=adc_open(Board_ADC1, &params);
-   if (adc5 == NULL)
-   { Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-   //while (1);
-   }
+    adc5 = ADC_open( CC2640R2_LAUNCHXL_ADC4, &params);
+    if (adc5 == NULL) { 
+        Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    }
 }
 
 void close_all_adc()
@@ -442,146 +391,128 @@ void read_adc()
     //ADC_Params_init(&params);
     //adc = ADC_open(Board_ADC0, &params);
 
-//if (adc == NULL)
-//{
-//Display_printf(display, 0, 0, "Error initializing ADC0\n");
-//while (1);
-//}
-/* Blocking mode conversion */
-/* converting ADC 1*/
-//res = ADC_convert(adc1, &adcValue1);
-//if (res == ADC_STATUS_SUCCESS)
-//{
-//    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc1, adcValue1);
-//}
-//else
-//{
-//    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
-//}
-//ADC_close(adc);
-
-//ADC_Params_init(&params);
-//adc = ADC_open( CC2640R2_LAUNCHXL_ADC1, &params);
-//adc1=adc_open(Board_ADC1, &params);
-//if (adc == NULL)
-//{
-    //Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-//while (1);
-//}
-
-/* Blocking mode conversion */
-/* converting ADC 2*/
-res = ADC_convert(adc2, &adcValue2);
-if (res == ADC_STATUS_SUCCESS)
-{
-    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc2, adcValue2);
-}
-else
-{
-    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
-}
-
-//ADC_close(adc);
-
-//ADC_Params_init(&params);
-//adc = ADC_open( CC2640R2_LAUNCHXL_ADC2, &params);
-//adc1=adc_open(Board_ADC1, &params);
-//if (adc == NULL)
-//{
-    //Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    //if (adc == NULL)
+    //{
+    //Display_printf(display, 0, 0, "Error initializing ADC0\n");
     //while (1);
-//}
+    //}
+    /* Blocking mode conversion */
+    /* converting ADC 1*/
+    //res = ADC_convert(adc1, &adcValue1);
+    //if (res == ADC_STATUS_SUCCESS)
+    //{
+    //    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc1, adcValue1);
+    //}
+    //else
+    //{
+    //    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
+    //}
+    //ADC_close(adc);
 
-/* Blocking mode conversion */
-/* converting ADC 3*/
-//res = ADC_convert(adc3, &adcValue3);
-//if (res == ADC_STATUS_SUCCESS)
-//{
-//    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc3, adcValue3);
-//}
-//else
-//{
-//    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
-//}
+    //ADC_Params_init(&params);
+    //adc = ADC_open( CC2640R2_LAUNCHXL_ADC1, &params);
+    //adc1=adc_open(Board_ADC1, &params);
+    //if (adc == NULL)
+    //{
+        //Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    //while (1);
+    //}
 
-//ADC_close(adc);
+    /* Blocking mode conversion */
+    /* converting ADC 2*/
+    res = ADC_convert(adc2, &adcValue2);
+    if (res == ADC_STATUS_SUCCESS) {
+        adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc2, adcValue2);
+    }
+    else {
+        Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
+    }
 
-//ADC_Params_init(&params);
-//adc = ADC_open( CC2640R2_LAUNCHXL_ADC3, &params);
-//adc1=adc_open(Board_ADC1, &params);
-//if (adc == NULL)
-//{ Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-//while (1);
-//}
+    //ADC_close(adc);
 
-/* Blocking mode conversion */
-/* converting ADC 4*/
-//res = ADC_convert(adc4, &adcValue4);
-//
-//if (res == ADC_STATUS_SUCCESS)
-//{
-//    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc4, adcValue4);
-//}
-//else
-//{
-//    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
-//    }
+    //ADC_Params_init(&params);
+    //adc = ADC_open( CC2640R2_LAUNCHXL_ADC2, &params);
+    //adc1=adc_open(Board_ADC1, &params);
+    //if (adc == NULL)
+    //{
+        //Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+        //while (1);
+    //}
 
-//ADC_close(adc);
+    /* Blocking mode conversion */
+    /* converting ADC 3*/
+    //res = ADC_convert(adc3, &adcValue3);
+    //if (res == ADC_STATUS_SUCCESS)
+    //{
+    //    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc3, adcValue3);
+    //}
+    //else
+    //{
+    //    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
+    //}
 
-//ADC_Params_init(&params);
-//adc = ADC_open( CC2640R2_LAUNCHXL_ADC4, &params);
-//adc1=adc_open(Board_ADC1, &params);
-//if (adc == NULL)
-//{ Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
-//while (1);
-//}
+    //ADC_close(adc);
 
-/* Blocking mode conversion */
-/* converting ADC 5*/
-//res = ADC_convert(adc5, &adcValue5); // converting
-//if (res == ADC_STATUS_SUCCESS)
-//{ adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc5, adcValue5);
-//}
-//else
-//{ Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
-//}
+    //ADC_Params_init(&params);
+    //adc = ADC_open( CC2640R2_LAUNCHXL_ADC3, &params);
+    //adc1=adc_open(Board_ADC1, &params);
+    //if (adc == NULL)
+    //{ Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    //while (1);
+    //}
 
-//ADC_close(adc); // turn off ADC
+    /* Blocking mode conversion */
+    /* converting ADC 4*/
+    //res = ADC_convert(adc4, &adcValue4);
+    //
+    //if (res == ADC_STATUS_SUCCESS)
+    //{
+    //    adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc4, adcValue4);
+    //}
+    //else
+    //{
+    //    Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
+    //    }
 
-latestAdcValue[9]=adcValue2;
-Display_printf(hDisplaySerial, 0, 0, "%d analog\n", latestAdcValue[9]);
+    //ADC_close(adc);
 
-/* Post event */
-//Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
+    //ADC_Params_init(&params);
+    //adc = ADC_open( CC2640R2_LAUNCHXL_ADC4, &params);
+    //adc1=adc_open(Board_ADC1, &params);
+    //if (adc == NULL)
+    //{ Display_printf(hDisplaySerial, 0, 0, "Error initializing ADC1\n");
+    //while (1);
+    //}
+
+    /* Blocking mode conversion */
+    /* converting ADC 5*/
+    //res = ADC_convert(adc5, &adcValue5); // converting
+    //if (res == ADC_STATUS_SUCCESS)
+    //{ adcValue2MicroVolt = ADC_convertRawToMicroVolts(adc5, adcValue5);
+    //}
+    //else
+    //{ Display_printf(hDisplaySerial, 0, 0, "ADC0 convert failed\n");
+    //}
+
+    //ADC_close(adc); // turn off ADC
+
+    latestAdcValue[9]=adcValue2;
+    Display_printf(hDisplaySerial, 0, 0, "%d analog\n", latestAdcValue[9]);
+
+    /* Post event */
+    //Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
 
 }
 
-Void tmr_callback(UArg arg0) {
-//place a message in the queue
-MsgObj msg;
-msg.id = 1;
-msg.val = 1;
-timer_val++;
-Mailbox_post(my_mailbox,&msg,BIOS_NO_WAIT);
+void tmr_callback(UArg arg0) {
+    //place a message in the queue
+    MsgObj msg;
+    msg.id = 1;
+    msg.val = 1;
+    timer_val++;
+    Mailbox_post(my_mailbox,&msg,BIOS_NO_WAIT);
 }
 //////////Clock_getTicks
-
-/* ========== TIMER CALLBACKS ======== */
-bool sampleHeart = false;
-bool convertHeart = false;
-
-void heartTimer_callback(UArg arg0)
-{
-    sampleHeart = true;
-    return;
-}
-
-void convertTimer_callback(UArg arg0)
-{
-    convertHeart = true;
-    return;
-}
 
 /* === I2C Transaction Constants === */
 #define I2C_MAX_WRITE               0x04
@@ -624,55 +555,9 @@ void convertTimer_callback(UArg arg0)
 
 #define VALUE_INTO_BMI270_GYRO_CONFIG      0x02
 
-/* =========MAX30102 Registers and values ==========*/
-#define MAX30102_ADDR_HEARTSENSOR   0x57
-
-#define MAX30102_INTERRUPT_ENABLE_1 0x02
-#define MAX30102_INT_E_1_VALUE      0xE0
-
-#define MAX30102_MODE_CONFIG        0x09
-#define MAX30102_HR_ONLY            0x02
-
-#define MAX30102_WRITE_PTR          0x04
-#define MAX30102_OVERFLOW_PTR       0x05
-#define MAX30102_READ_PTR           0x06
-#define MAX30102_DATA_REG           0x07
-
-#define MAX30102_SPO2_CONF          0x0A
-#define MAX30102_18BIT_RESO         0x00
-
-#define MAX30102_LED1_PA            0x0C
-#define MAX30102_LED2_PA            0x0D
-#define MAX30102_LED_0_0_MA         0x00
-#define MAX30102_LED_0_2_MA         0x01
-#define MAX30102_LED_0_4_MA         0x02
-#define MAX30102_LED_3_0_MA         0x0F
-#define MAX30102_LED_6_2_MA         0x1F
-#define MAX30102_LED_12_6_MA        0x3F
-#define MAX30102_LED_25_4_MA        0x7F
-#define MAX30102_LED_51_0_MA        0xFF
-
-/* ========= Timer Macros =========== */
-#define HEART_SAMPLE_PERIOD         2500 // 10^-5 seconds old value - 2500
-#define HEART_CONVERT_PERIOD        300000 // 10^-5 seconds
-
-/* ========= Heartrate Algorithm Constants ========*/
-#define HEART_BUFFER_SIZE           100
-#define THRESHOLD_MIN               15000
-#define THRESHOLD_MAX               40000
-#define PEAK_DISTANCE               15
-#define MAX_NUM_PEAKS               20
-
-#define HEART_SAMPLE_FREQ           32
-
 typedef enum{sitting,
 standing} position;
 
-/*
-int8_t bmg250_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t bmg250_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-void bmg250_i2c_delay_ms(uint32_t period);
-*/
 
 uint8_t txBuffer[I2C_MAX_WRITE];
 uint8_t rxBuffer[I2C_MAX_READ];
@@ -683,43 +568,35 @@ I2C_Transaction i2cTransaction;
 
 void *mainThread(void *arg0) {
 
-uint16_t temperature;
-uint16_t rawAcc_x, rawAcc_y, rawAcc_z;
-uint16_t datacounter=0;
-int realAcc_x, realAcc_y, realAcc_z;
-float initialOffset_x, initialOffset_y, initialOffset_z;
-static int sampleCount = 0;
+    uint16_t rawAcc_x, rawAcc_y, rawAcc_z;
+    uint16_t datacounter=0;
+    int realAcc_x, realAcc_y, realAcc_z;
+    float initialOffset_x, initialOffset_y, initialOffset_z;
+    static int sampleCount = 0;
 
-//Acceleration Array and Values
-float acceleration_x, acceleration_y, acceleration_z, acceleration_magnitude;
-float acceleration_x_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float acceleration_y_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float acceleration_z_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float acceleration_magnitude_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    //Acceleration Array and Values
+    float acceleration_x, acceleration_y, acceleration_z, acceleration_magnitude;
+    float acceleration_x_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float acceleration_y_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float acceleration_z_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float acceleration_magnitude_arr[4] = {0.0, 0.0, 0.0, 0.0};
 
-//Gyroscope Array and Values
-float gyro_x, gyro_y, gyro_z, gyro_magnitude;
-float gyro_x_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float gyro_y_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float gyro_z_arr[4] = {0.0, 0.0, 0.0, 0.0};
-float gyro_magnitude_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    //Gyroscope Array and Values
+    float gyro_x, gyro_y, gyro_z, gyro_magnitude;
+    float gyro_x_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float gyro_y_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float gyro_z_arr[4] = {0.0, 0.0, 0.0, 0.0};
+    float gyro_magnitude_arr[4] = {0.0, 0.0, 0.0, 0.0};
 
-//Feature_Extraction* feature_extraction;
-//feature_extraction->input_arr_size = 4;
+    //Feature_Extraction* feature_extraction;
+    //feature_extraction->input_arr_size = 4;
 
-Feature_Extraction feature_extraction_instance;
-Feature_Extraction *feature_extraction = &feature_extraction_instance;
-feature_extraction->input_arr_size = 4;
+    Feature_Extraction feature_extraction_instance;
+    Feature_Extraction *feature_extraction = &feature_extraction_instance;
+    feature_extraction->input_arr_size = 4;
 
-
-
-
-
-uint8_t status;
-float celsius, fahrenheit;
-uint32_t rawHeartData[HEART_BUFFER_SIZE] = {0};
-uint8_t arrayPtr = 0;
-
+    uint8_t status;
+    uint8_t arrayPtr = 0;
 
 
     uint8_t increment = 0;
@@ -733,30 +610,25 @@ uint8_t arrayPtr = 0;
 
     /* Configure the LED and if applicable, the TMP116_EN pin */
     GPIO_setConfig(Board_GPIO_LED0, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
-#ifdef Board_GPIO_TMP116_EN
-    GPIO_setConfig(Board_GPIO_TMP116_EN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_HIGH); /////////////////////
-    /* 1.5 ms reset time for the TMP116 */
-    sleep(1);
-#endif
+    #ifdef Board_GPIO_TMP116_EN
+        GPIO_setConfig(Board_GPIO_TMP116_EN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_HIGH); /////////////////////
+        /* 1.5 ms reset time for the TMP116 */
+        sleep(1);
+    #endif
 
     /* Turn on user LED */
     GPIO_write(Board_GPIO_LED0, Board_GPIO_LED_ON);
     Display_printf(hDisplaySerial, 0, 0, "Starting the temperature sensor.");
 
     /* Create I2C for usage */
-
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_400kHz;
     i2c = I2C_open(Board_I2C_TMP, &i2cParams);
 
-    if (i2c == NULL)
-    {
+    if (i2c == NULL) {
         Display_printf(hDisplaySerial, 0, 0, "Error Initializing I2C\n");
-        while (1)
-            ;
     }
-    else
-    {
+    else {
         Display_printf(hDisplaySerial, 0, 0, "I2C Initialized!\n");
     }
 
@@ -766,28 +638,22 @@ uint8_t arrayPtr = 0;
 
     /* I2C setup for BMA400 */
     i2cTransaction.slaveAddress = BMA400_ADDR_ACCELEROMETER; // determine the slave address
+
+    /*  Accelerometer Checks  */
     /* Check if the accelerometer is connected */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMA400_CHIP_ID;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMA400_ADDR_ACCELEROMETER)
-    {
-        if (rxBuffer[0] == 0x90)
-        {
-            Display_printf(hDisplaySerial, 0, 0,
-                           "BMA400 Accelerometer Communication OK");
+    if (I2C_transfer( i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMA400_ADDR_ACCELEROMETER) {
+        if (rxBuffer[0] == 0x90) {
+            Display_printf(hDisplaySerial, 0, 0, "BMA400 Accelerometer Communication OK");
         }
-        else
-        {
-            Display_printf(hDisplaySerial, 0, 0, "Communication Not OK");
+        else {
+            Display_printf(hDisplaySerial, 0, 0, "BMA400 Accelerometer Communication Not OK");
         }
     }
-    else
-    {
-        Display_printf(hDisplaySerial, 0, 0,
-                       "Error. No Accelerometer sensor found!");
+    else {
+        Display_printf(hDisplaySerial, 0, 0, "Error. No Accelerometer sensor found!");
     }
 
     /* Change the mode from sleep mode to normal mode by writing into registers */
@@ -795,8 +661,7 @@ uint8_t arrayPtr = 0;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMA400_ACC_CONFIG;
     txBuffer[1] = VALUE_INTO_ACC_CONFIG;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         Display_printf(hDisplaySerial, 0, 0, "Normal Mode Configured");
     }
 
@@ -804,146 +669,63 @@ uint8_t arrayPtr = 0;
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMA400_CHECK_STATUS;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMA400_ADDR_ACCELEROMETER)
-    {
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMA400_ADDR_ACCELEROMETER) {
         status = (rxBuffer[0] >> 1) & 0x03;
-        if (status == 2)
-        {
+        if (status == 2) {
             Display_printf(hDisplaySerial, 0, 0, "Normal Mode");
         }
-        else if (status == 1)
-        {
+        else if (status == 1) {
             Display_printf(hDisplaySerial, 0, 0, "Low Power Mode");
         }
-        else if (status == 0)
-        {
+        else if (status == 0) {
             Display_printf(hDisplaySerial, 0, 0, "Sleep Mode");
         }
     }
-    else
-    {
+    else {
         Display_printf(hDisplaySerial, 0, 0, "Error. Mode Undetermined");
-        //while(1);
     }
 
     /* Verify and check the range (acceleration)*/
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMA400_ACC_CONFIG1;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         uint8_t range;
         range = rxBuffer[0] >> 6;
         int b;
         int accrange = 1;
-        for (b = 0; b <= range; b++)
-        {
+        for (b = 0; b <= range; b++) {
             accrange = accrange * 2;
         }
 
         Display_printf(hDisplaySerial, 0, 0, "ACC range: %d g", accrange);
     }
 
-    /* I2C setup for MAX30102 */
-    i2cTransaction.slaveAddress = MAX30102_ADDR_HEARTSENSOR;
-    /* Set Enable Interrupt */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_INTERRUPT_ENABLE_1;
-    txBuffer[1] = MAX30102_INT_E_1_VALUE;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == MAX30102_ADDR_HEARTSENSOR)
-    {
-        Display_printf(hDisplaySerial, 0, 0, "HeartBeat Sensor is detected");
-        Display_printf(hDisplaySerial, 0, 0, "Interrupt enable 1 is set");
-    }
-    else
-    {
-        Display_printf(
-                hDisplaySerial, 0, 0,
-                "HeartBeat Sensor NOT detected, interrupt enable 1 not set.");
-    }
 
-    /* Set heart rate only mode */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_MODE_CONFIG;
-    txBuffer[1] = MAX30102_HR_ONLY;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
-        Display_printf(hDisplaySerial, 0, 0, "Heart Rate mode is set");
-    }
-    else
-    {
-        Display_printf(hDisplaySerial, 0, 0, "Heart Rate Mode not set");
-    }
-
-    /* Reset the write, overflow, read registers prior to reading */
-    i2cTransaction.writeCount = 4;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_WRITE_PTR;
-    txBuffer[1] = 0x00;
-    txBuffer[2] = 0x00;
-    txBuffer[3] = 0x00;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure SpO2 reg */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_SPO2_CONF;
-    txBuffer[1] = MAX30102_18BIT_RESO;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure LED1 current */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_LED1_PA;
-    txBuffer[1] = MAX30102_LED_6_2_MA;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure LED2 current */
-    // Not needed when configured in Heartrate (HR) mode
-    //    i2cTransaction.writeCount = 2;
-    //    i2cTransaction.readCount  = 1;
-    //    txBuffer[0] = MAX30102_LED2_PA;
-    //    txBuffer[1] = MAX30102_LED_6_2_MA;
-    //    I2C_transfer(i2c, &i2cTransaction);
-
-    /* I2C setup for BMG250 */
+    /* I2C setup for BMG250 (Gyroscope)*/
     int8_t bmg250_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
     int8_t bmg250_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
     void bmg250_i2c_delay_ms(uint32_t period);
 
     i2cTransaction.slaveAddress = BMG250_ADDR_GYRO; // determine the slave address
+
     /* Check if the gyroscope is connected */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_CHIP_ID;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMG250_ADDR_GYRO)
-    {
-        if (rxBuffer[0] == 0xD5)
-        {
-            Display_printf(hDisplaySerial, 0, 0,
-                           "BMG250 Gyroscope Communication OK");
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMG250_ADDR_GYRO) {
+        if (rxBuffer[0] == 0xD5) {
+            Display_printf(hDisplaySerial, 0, 0, "BMG250 Gyroscope Communication OK");
         }
-        else
-        {
+        else {
             Display_printf(hDisplaySerial, 0, 0, "BMG250 Communication Not OK");
         }
     }
-    else
-    {
-        Display_printf(hDisplaySerial, 0, 0,
-                       "Error. No Gyroscope sensor found!");
+    else {
+        Display_printf(hDisplaySerial, 0, 0, "Error. No Gyroscope sensor found!");
     }
 
     /* Change the mode from sleep mode to normal mode by writing into registers */
-
 
     struct bmg250_dev  bmg250;
     struct bmg250_cfg  bmg250cfg;
@@ -957,27 +739,21 @@ uint8_t arrayPtr = 0;
     bmg250.delay_ms=bmg250_i2c_delay_ms;
 
 
-
     uint8_t x = bmg250_init(&bmg250);
     uint8_t y = bmg250_set_power_mode(&bmg250);
     uint8_t z = bmg250_get_regs(0x03, rxBuffer, 1, &bmg250);
-    if(z==0)
-    {
+    if(z==0) {
         status=rxBuffer[0]>>2 & 0x03;
-        if (status == 3)
-        {
+        if (status == 3) {
            Display_printf(hDisplaySerial, 0, 0, "Fast Start Up");
         }
-        else if (status == 2)
-        {
+        else if (status == 2) {
             Display_printf(hDisplaySerial, 0, 0, "Reserved");
         }
-        else if (status == 1)
-        {
+        else if (status == 1) {
             Display_printf(hDisplaySerial, 0, 0, "Normal Mode");
         }
-        else if (status == 0)
-        {
+        else if (status == 0) {
             Display_printf(hDisplaySerial, 0, 0, "Suspend Mode");
         }
     }
@@ -989,60 +765,42 @@ uint8_t arrayPtr = 0;
     z = bmg250_set_sensor_settings(&bmg250cfg, &bmg250);
     z = bmg250_get_sensor_settings(&bmg250cfg, &bmg250);
 
-    //print_rslt(" bmg250_get_sensor_settings status ", z);
-
-
-
-
-
-
     /* Verify and check the mode of the gyroscope */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_CHECK_STATUS;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMG250_ADDR_GYRO)
-    {
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMG250_ADDR_GYRO) {
         int a;
         a = rxBuffer[0];
         status = (rxBuffer[0] >> 2) & 0x03;
-        if (status == 2)
-        {
+        if (status == 2) {
             Display_printf(hDisplaySerial, 0, 0, "Normal Mode");
         }
-        else if (status == 1)
-        {
+        else if (status == 1) {
             Display_printf(hDisplaySerial, 0, 0, "Low Power Mode");
         }
-        else if (status == 0)
-        {
+        else if (status == 0) {
             Display_printf(hDisplaySerial, 0, 0, "Sleep Mode");
         }
     }
-    else
-    {
+    else {
         Display_printf(hDisplaySerial, 0, 0, "Error. Mode Undetermined");
-        //while(1);
     }
 
     /* Verify and check the range (gyroscope)*/
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_GYRO_CONFIG1;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         uint8_t gyrorange;
         gyrorange = rxBuffer[0] >> 6;
         int gyrob;
         int gyroaccrange = 1;
-        for (gyrob = 0; gyrob <= gyrorange; gyrob++)
-        {
+        for (gyrob = 0; gyrob <= gyrorange; gyrob++) {
             gyroaccrange = gyroaccrange * 2;
         }
 
-        Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g",
-                       gyroaccrange);
+        Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g", gyroaccrange);
     }
 
     /* I2C setup for BMI270 */
@@ -1051,24 +809,16 @@ uint8_t arrayPtr = 0;
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMI270_CHIP_ID;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO)
-    {
-        if (rxBuffer[0] == 0x24)
-        {
-            Display_printf(hDisplaySerial, 0, 0,
-                           "BMI270 Gyroscope Communication OK");
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO) {
+        if (rxBuffer[0] == 0x24) {
+            Display_printf(hDisplaySerial, 0, 0, "BMI270 Gyroscope Communication OK");
         }
-        else
-        {
-            Display_printf(hDisplaySerial, 0, 0, "BMI270 Communication Not OK");
+        else {
+            Display_printf(hDisplaySerial, 0, 0, "BMI270 Gyroscope Communication Not OK");
         }
     }
-    else
-    {
-        Display_printf(hDisplaySerial, 0, 0,
-                       "Error. No ACC / Gyroscope sensor found!");
+    else {
+        Display_printf(hDisplaySerial, 0, 0, "Error. No ACC / Gyroscope sensor found!");
     }
 
     /* Change the mode from sleep mode to normal mode by writing into registers */
@@ -1076,8 +826,7 @@ uint8_t arrayPtr = 0;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x7D;
     txBuffer[1] = 0x0E;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         Display_printf(hDisplaySerial, 0, 0, "Normal Mode Configured");
     }
 
@@ -1085,8 +834,7 @@ uint8_t arrayPtr = 0;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x7C;
     txBuffer[1] = 0x00;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         Display_printf(hDisplaySerial, 0, 0, "Power Saved");
     }
 
@@ -1094,42 +842,33 @@ uint8_t arrayPtr = 0;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x59;
     txBuffer[1] = 0x00;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         Display_printf(hDisplaySerial, 0, 0, "Prepare loading");
     }
 
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 7;
     txBuffer[0] = 0x5E;
-    if (I2C_transfer(
-                i2c,
-                &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO)
-    {   int a[8];
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO) {   
+        int a[8];
         a[0]=rxBuffer[0];
         a[1]=rxBuffer[1];
         a[2]=rxBuffer[2];
         a[3]=rxBuffer[3];
     }
 
-
-
     i2cTransaction.writeCount = 2;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x59;
     txBuffer[1] = 0x01;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         Display_printf(hDisplaySerial, 0, 0, "Prepare loading");
     }
 
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x21;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO)
-    {
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO) {
         int a[1];
 
         a[0] = rxBuffer[0];
@@ -1142,28 +881,21 @@ uint8_t arrayPtr = 0;
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x7D;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO)
-    {
+    if (I2C_transfer(i2c, &i2cTransaction) && i2cTransaction.slaveAddress == BMI270_ADDR_GYRO) {
         int a;
         a = rxBuffer[0];
         status = (rxBuffer[0] >> 2) & 0x03;
-        if (status == 2)
-        {
+        if (status == 2) {
             Display_printf(hDisplaySerial, 0, 0, "Normal Mode");
         }
-        else if (status == 1)
-        {
+        else if (status == 1) {
             Display_printf(hDisplaySerial, 0, 0, "Low Power Mode");
         }
-        else if (status == 0)
-        {
+        else if (status == 0) {
             Display_printf(hDisplaySerial, 0, 0, "Sleep Mode");
         }
     }
-    else
-    {
+    else {
         Display_printf(hDisplaySerial, 0, 0, "Error. Mode Undetermined");
         //while(1);
     }
@@ -1172,122 +904,37 @@ uint8_t arrayPtr = 0;
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_GYRO_CONFIG1;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
+    if (I2C_transfer(i2c, &i2cTransaction)) {
         uint8_t gyrorange;
         gyrorange = rxBuffer[0] >> 6;
         int gyrob;
         int gyroaccrange = 1;
-        for (gyrob = 0; gyrob <= gyrorange; gyrob++)
-        {
+        for (gyrob = 0; gyrob <= gyrorange; gyrob++) {
             gyroaccrange = gyroaccrange * 2;
         }
 
-        Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g",
-                       gyroaccrange);
+        Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g", gyroaccrange);
     }
 
-    /* I2C setup for MAX30102 */
-    i2cTransaction.slaveAddress = MAX30102_ADDR_HEARTSENSOR;
-    /* Set Enable Interrupt */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_INTERRUPT_ENABLE_1;
-    txBuffer[1] = MAX30102_INT_E_1_VALUE;
-    if (I2C_transfer(
-            i2c,
-            &i2cTransaction) && i2cTransaction.slaveAddress == MAX30102_ADDR_HEARTSENSOR)
-    {
-        Display_printf(hDisplaySerial, 0, 0, "HeartBeat Sensor is detected");
-        Display_printf(hDisplaySerial, 0, 0, "Interrupt enable 1 is set");
-    }
-    else
-    {
-        Display_printf(
-                hDisplaySerial, 0, 0,
-                "HeartBeat Sensor NOT detected, interrupt enable 1 not set.");
-    }
-
-    /* Set heart rate only mode */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_MODE_CONFIG;
-    txBuffer[1] = MAX30102_HR_ONLY;
-    if (I2C_transfer(i2c, &i2cTransaction))
-    {
-        Display_printf(hDisplaySerial, 0, 0, "Heart Rate mode is set");
-    }
-    else
-    {
-        Display_printf(hDisplaySerial, 0, 0, "Heart Rate Mode not set");
-    }
-
-    /* Reset the write, overflow, read registers prior to reading */
-    i2cTransaction.writeCount = 4;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_WRITE_PTR;
-    txBuffer[1] = 0x00;
-    txBuffer[2] = 0x00;
-    txBuffer[3] = 0x00;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure SpO2 reg */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_SPO2_CONF;
-    txBuffer[1] = MAX30102_18BIT_RESO;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure LED1 current */
-    i2cTransaction.writeCount = 2;
-    i2cTransaction.readCount = 1;
-    txBuffer[0] = MAX30102_LED1_PA;
-    txBuffer[1] = MAX30102_LED_51_0_MA;
-    I2C_transfer(i2c, &i2cTransaction);
-
-    /* Configure LED2 current */
-    // Not needed when configured in Heartrate (HR) mode
-//    i2cTransaction.writeCount = 2;
-//    i2cTransaction.readCount  = 1;
-//    txBuffer[0] = MAX30102_LED2_PA;
-//    txBuffer[1] = MAX30102_LED_6_2_MA;
-//    I2C_transfer(i2c, &i2cTransaction);
-
-    /*Calibrate Accelerometer before read loop (9/17/20 P.I.) */
-    /* Read Accelerometer */
-    //i2cTransaction.slaveAddress = BMA400_ADDR_ACCELEROMETER;
-    //i2cTransaction.writeCount = 1;
-    //i2cTransaction.readCount  = 6;
-
-    Clock_Params clockParams;
-    Clock_Params_init(&clockParams);
-    clockParams.startFlag = TRUE;
-    clockParams.arg = 'A';
-    Clock_Handle heartTimer = Clock_create(heartTimer_callback, HEART_SAMPLE_PERIOD, &clockParams, Error_IGNORE);
-
-    Clock_Handle convertTimer = Clock_create(convertTimer_callback, HEART_CONVERT_PERIOD, &clockParams, Error_IGNORE);
-
-    GPTimerCC26XX_Params params;
-    GPTimerCC26XX_Params_init(&params);
-    params.width          = GPT_CONFIG_32BIT;
-    params.mode           = GPT_MODE_PERIODIC_UP;
-    params.debugStallMode = GPTimerCC26XX_DEBUG_STALL_OFF;
-    hTimer = GPTimerCC26XX_open(Board_GPTIMER0A, &params);
-    if(hTimer == NULL)
-    {
-    }
-    GPTimerCC26XX_Value loadVal = 4799999;
-    GPTimerCC26XX_setLoadValue(hTimer, loadVal);
-    GPTimerCC26XX_registerInterrupt(hTimer, timerCallback, GPT_INT_TIMEOUT);
-    GPTimerCC26XX_start(hTimer);
+    //GPTimerCC26XX_Params params;
+    //GPTimerCC26XX_Params_init(&params);
+    //params.width          = GPT_CONFIG_32BIT;
+    //params.mode           = GPT_MODE_PERIODIC_UP;
+    //params.debugStallMode = GPTimerCC26XX_DEBUG_STALL_OFF;
+    //hTimer = GPTimerCC26XX_open(Board_GPTIMER0A, &params);
+    //if(hTimer == NULL) {
+    //}
+    //GPTimerCC26XX_Value loadVal = 4799999;
+    //GPTimerCC26XX_setLoadValue(hTimer, loadVal);
+    //GPTimerCC26XX_registerInterrupt(hTimer, timerCallback, GPT_INT_TIMEOUT);
+    //GPTimerCC26XX_start(hTimer);
 
     /* Initialize all of the Analog to Digital converters */
     init_all_adc();
 
-    while (1)
-    {
-        //Display_printf(hDisplaySerial, 0, 0, "offsetx: %f f", initialOffset_x);
-        //Display_printf(hDisplaySerial, 0, 0, "offsetx: %f f", initialOffset_x);
+
+    /*Start of Infinite while loop. This while loop is where the Gyroscope and Acellerometer will continuously take in data and calculate the behavior of the pig*/
+    while (1) {
 
         read_adc();
 
@@ -1295,31 +942,6 @@ uint8_t arrayPtr = 0;
         i2cTransaction.slaveAddress = TMP117_ADDR_GND_TEMPSENSOR;
         i2cTransaction.writeCount = 1;
         i2cTransaction.readCount = 2;
-        /* temperature detection*/
-        txBuffer[0] = TMP117_RESULT_REG;
-        if (I2C_transfer(
-                i2c,
-                &i2cTransaction) && i2cTransaction.slaveAddress == TMP117_ADDR_GND_TEMPSENSOR)
-        {
-            /* Extract degrees C from the received data */
-            temperature = (rxBuffer[0] << 8) | (rxBuffer[1]);
-            /* If the MSB is set '1', then we have a 2's complement negative value which needs to be sign extended */
-            if (rxBuffer[0] & 0x80)
-            {
-                temperature |= 0xF000;
-            }
-            latestAdcValue[0] = temperature;
-            celsius = temperature * 0.0078125;
-            fahrenheit = (celsius * 9.0 / 5.0) + 32.0;
-            Display_printf(hDisplaySerial, 0, 0, "Temperature: %f (C) %f (F)",
-                           celsius, fahrenheit);
-        }
-        else
-        {
-           /* Display_printf(hDisplaySerial, 0, 0,
-                           "Error. No temperature sensor found!");
-            Display_printf(hDisplaySerial, 0, 0, "I2C Bus fault.");/*///////////////////////////////////////////tmp117
-        }
 
         /* Test accelerometer connectivity */
         bool accelerometerConnected = false;
@@ -1328,13 +950,8 @@ uint8_t arrayPtr = 0;
         i2cTransaction.writeCount = 0;
         i2cTransaction.readCount = 1;
 
-        if (I2C_transfer(i2c, &i2cTransaction))
-        {
+        if (I2C_transfer(i2c, &i2cTransaction)) {
             accelerometerConnected = true;
-        }
-        else
-        {
-            //Accelerometer not connected
         }
 
         /* Read Accelerometer */
@@ -1342,12 +959,10 @@ uint8_t arrayPtr = 0;
         i2cTransaction.readCount = 6;
 
         // CALIBRATION
-        while ((sampleCount < 1024) && (accelerometerConnected))
-        {
+        while ((sampleCount < 1024) && (accelerometerConnected)) {
 
             txBuffer[0] = BMA400_RESULT_REG_START;
-            if (I2C_transfer(i2c, &i2cTransaction))
-            {
+            if (I2C_transfer(i2c, &i2cTransaction)) {
 
                 rawAcc_x = (rxBuffer[1] << 8) | (rxBuffer[0]);
                 rawAcc_y = (rxBuffer[3] << 8) | (rxBuffer[2]);
@@ -1358,33 +973,27 @@ uint8_t arrayPtr = 0;
                 realAcc_x = (int) rawAcc_x;
                 realAcc_y = (int) rawAcc_y;
                 realAcc_z = (int) rawAcc_z;
-                if ((int) rawAcc_x > 2047)
-                {
+                if ((int) rawAcc_x > 2047) {
                     realAcc_x = (int) rawAcc_x - 4096;
                 }
-                if ((int) rawAcc_y > 2047)
-                {
+                if ((int) rawAcc_y > 2047) {
                     realAcc_y = (int) rawAcc_y - 4096;
                 }
-                if ((int) rawAcc_z > 2047)
-                {
+                if ((int) rawAcc_z > 2047) {
                     realAcc_z = (int) rawAcc_z - 4096;
                 }
                 //Why this number? --> 0.019178
                 initialOffset_x += realAcc_x * 0.019178;
-                Display_printf(hDisplaySerial, 0, 0, "offsetx: %f f",
-                               initialOffset_x);
+                Display_printf(hDisplaySerial, 0, 0, "offsetx: %f f", initialOffset_x);
                 initialOffset_y += realAcc_y * 0.019178;
                 initialOffset_z += realAcc_z * 0.019178;
                 sampleCount++;
             }
-            else
-            {
+            else {
                 accelerometerConnected = false;
             }
 
-            if (sampleCount == 1024)
-            {
+            if (sampleCount == 1024) {
                 //Divide values by 1024 (samples) to get average
                 initialOffset_x = initialOffset_x / 1024.0;
                 initialOffset_y = initialOffset_y / 1024.0;
@@ -1407,16 +1016,13 @@ uint8_t arrayPtr = 0;
             realAcc_x = (int) rawAcc_x;
             realAcc_y = (int) rawAcc_y;
             realAcc_z = (int) rawAcc_z;
-            if ((int) rawAcc_x > 2047)
-            {
+            if ((int) rawAcc_x > 2047) {
                 realAcc_x = (int) rawAcc_x - 4096;
             }
-            if ((int) rawAcc_y > 2047)
-            {
+            if ((int) rawAcc_y > 2047) {
                 realAcc_y = (int) rawAcc_y - 4096;
             }
-            if ((int) rawAcc_z > 2047)
-            {
+            if ((int) rawAcc_z > 2047) {
                 realAcc_z = (int) rawAcc_z - 4096;
             }
             
@@ -1485,20 +1091,17 @@ uint8_t arrayPtr = 0;
         //////////////////////////////////////////////////////////////////////////////////bma400
         //???
 
-        if (acceleration_z > 11)
-        {
+        if (acceleration_z > 11) {
             piggy = sitting;
         }
-        else if (acceleration_z < 9)
-        {
+        else if (acceleration_z < 9) {
             piggy = standing;
         }
-        if (piggy == standing)
-        {
+
+        if (piggy == standing) {
             //Display_printf(hDisplaySerial, 0, 0, "This pig is most likely standing/moving\n");
         }
-        else
-        {
+        else {
             //Display_printf(hDisplaySerial, 0, 0, "This pig is most likely sitting/sleeping\n");
         }
 
@@ -1510,12 +1113,10 @@ uint8_t arrayPtr = 0;
         i2cTransaction.writeCount = 0;
         i2cTransaction.readCount = 1;
 
-        if (I2C_transfer(i2c, &i2cTransaction))
-        {
+        if (I2C_transfer(i2c, &i2cTransaction)) {
             gyroConnected = true;
         }
-        if(!gyroConnected)
-        {
+        if(!gyroConnected) {
             //while(1)
             /* Error GyroScope didn't connect */
         }
@@ -1583,251 +1184,45 @@ uint8_t arrayPtr = 0;
         }
         extract_time_domain_features(feature_extraction, GYRO_MAG);
 
-        Display_printf(hDisplaySerial, 0, 0,
-                                   "BMG250_GYRO_data  X: %d \t Y: %d \t Z: %d \t Sensor-time : %lu\n", (bmg250data.x),
-                                 (bmg250data.y), (bmg250data.z), (long long) bmg250data.sensortime);
+        Display_printf(hDisplaySerial, 0, 0, "BMG250_GYRO_data  X: %d \t Y: %d \t Z: %d \t Sensor-time : %lu\n", (bmg250data.x), (bmg250data.y), (bmg250data.z), (long long) bmg250data.sensortime);
         latestAdcValue[5] = bmg250data.x;
-                    latestAdcValue[6] = bmg250data.y;
-                    latestAdcValue[7] = bmg250data.z;
-
-                   // Display_printf(hDisplaySerial, 0, 0,"analog heartrate: %u\n", latestAdcValue[0]);
-
-
-
-        /* Read HeartBeat */
-
-if(sampleHeart) {
-/* Read HeartBeat */
-i2cTransaction.slaveAddress = MAX30102_ADDR_HEARTSENSOR;
-
-i2cTransaction.writeCount = 2; i2cTransaction.readCount = 1; txBuffer[0] = MAX30102_READ_PTR; txBuffer[1] = increment; I2C_transfer(i2c, &i2cTransaction);
-
-increment++;
-
-i2cTransaction.writeCount = 2; i2cTransaction.readCount = 1; txBuffer[0] = MAX30102_WRITE_PTR; txBuffer[1] = increment; I2C_transfer(i2c, &i2cTransaction);
-
-i2cTransaction.writeCount = 1; i2cTransaction.readCount = 3; txBuffer[0] = MAX30102_WRITE_PTR; if(I2C_transfer(i2c, &i2cTransaction)) {
-//                Display_printf(hDisplaySerial, 0, 0, "write: %x ", rxBuffer[0]);
-//                Display_printf(hDisplaySerial, 0, 0, "overflow: %x", rxBuffer[1]);
-//                Display_printf(hDisplaySerial, 0, 0, "read: %x", rxBuffer[2]);
-}
-
-i2cTransaction.writeCount = 1; i2cTransaction.readCount = 7; txBuffer[0] = MAX30102_DATA_REG;
-
-uint32_t heartData = 0; uint32_t heartData2 = 0; if(I2C_transfer(i2c, &i2cTransaction)) { int a; for(a=0; a<3; a++) {
-//                    Display_printf(hDisplaySerial, 0, 0, "LED1: %x", rxBuffer[a]);
-heartData = heartData << 8 | (rxBuffer[a] & 0xFF); } for(a=3; a<6; a++) {
-//                    Display_printf(hDisplaySerial, 0, 0, "LED2: %x", rxBuffer[a]);
-heartData2 = heartData2 << 8 | (rxBuffer[a] & 0xFF); }
-//                Display_printf(hDisplaySerial, 0, 0, "EXTRA: %x", rxBuffer[6]);
-
-if(arrayPtr < HEART_BUFFER_SIZE) { rawHeartData[arrayPtr] = heartData; arrayPtr++; } }
-
-//            Display_printf(hDisplaySerial, 0, 0, "Value1: %u", heartData);
-//            Display_printf(hDisplaySerial, 0, 0, "Value2: %u", heartData2);
-//            Display_printf(hDisplaySerial, 0, 0, "%u", heartData);
-            heartData >>= 8;
-//            Display_printf(hDisplaySerial, 0, 0, "Scaled: %u", heartData);
-//            latestAdcValue[4] = (uint16_t) heartData;
-//            if(I2C_transfer(i2c, &i2cTransaction))
-//            {
-//                Display_printf(hDisplaySerial, 0, 0, "DATA: %x\n", rxBuffer[0]);
-//            }
-
-i2cTransaction.writeCount = 1; i2cTransaction.readCount = 1; txBuffer[0] = 0x00; if(I2C_transfer(i2c, &i2cTransaction)) { if(rxBuffer[0] & 0x80 == 0x80) { Display_printf(hDisplaySerial, 0, 0, "32 samples are available"); } if(rxBuffer[0] & 0x40 == 0x40) { i2cTransaction.writeCount = 2; i2cTransaction.readCount = 1; txBuffer[0] = MAX30102_READ_PTR; txBuffer[1] = increment; I2C_transfer(i2c, &i2cTransaction);
-
-increment ++;
-
-if(increment == 0x20) { increment = 0x00; } i2cTransaction.writeCount = 2; i2cTransaction.readCount = 1; txBuffer[0] = MAX30102_WRITE_PTR; txBuffer[1] = increment; I2C_transfer(i2c, &i2cTransaction);
-
-i2cTransaction.writeCount = 1; i2cTransaction.readCount = 1; txBuffer[0] = MAX30102_DATA_REG; if(I2C_transfer(i2c, &i2cTransaction)) { Display_printf(hDisplaySerial, 0, 0, "data: %x", rxBuffer[0]); } } } sampleHeart = false; Clock_start(heartTimer); }
-
-if(convertHeart) { uint32_t mean = 0; int32_t arraySize = HEART_BUFFER_SIZE; int32_t newHeartArray[HEART_BUFFER_SIZE] = {0};
-
-// Calculate and remove DC mean
-int i;
-for(i = 0; i < HEART_BUFFER_SIZE; i++) { if(rawHeartData[i] == 0) { arraySize = i; break; } mean += rawHeartData[i]; }
-
-mean = mean/arraySize;
-
-// Remove DC and invert signal
-for(i = 0; i < arraySize; i++) {
-    newHeartArray[i] = -1*(rawHeartData[i] - mean); rawHeartData[i] = 0;
-    }
-
-// Four-point moving average
-for(i = 0; i < arraySize-4; i++) {
-    newHeartArray[i] = (newHeartArray[i]+newHeartArray[i+1]+newHeartArray[i+2]+newHeartArray[i+3])/(int)4;
-
-//                Display_printf(hDisplaySerial, 0, 0, "%d", newHeartArray[i]);
-}
-
-// Calculate threshold
-int32_t threshold = 0; for(i = 0; i < arraySize; i++) { threshold += newHeartArray[i]; } threshold = threshold/arraySize; threshold = (threshold < THRESHOLD_MIN) ? THRESHOLD_MIN : (threshold > THRESHOLD_MAX) ? THRESHOLD_MAX : threshold;
-
-// Valley detection
-int32_t valley_locs[MAX_NUM_PEAKS] = {0}; int32_t num_peaks = 0;
-
-maxim_find_peaks( valley_locs, &num_peaks, newHeartArray, arraySize, threshold, PEAK_DISTANCE, MAX_NUM_PEAKS ); //peak_height, peak_distance, max_num_peaks
-int32_t peak_interval_sum = 0
-,    heartrate = 0;
-
-    if (num_peaks>=2)
-    {
-        int k = 1;
-        for (k=1; k<num_peaks; k++) peak_interval_sum += (valley_locs[k] - valley_locs[k -1] );
-        peak_interval_sum = peak_interval_sum/(num_peaks-1);
-        heartrate = (int32_t)( (HEART_SAMPLE_FREQ*60)/ peak_interval_sum );
-    }
-    else
-    {
-        heartrate = 0; // unable to calculate because # of peaks are too small
-    }
-
-    latestAdcValue[4] = (uint16_t) heartrate;
-    Display_printf(hDisplaySerial, 0, 0, "Heartrate: %d BPM", heartrate);
-
-    arrayPtr = 0;
-    convertHeart = false;
-    Clock_start(convertTimer);
-}
-//        i2cTransaction.slaveAddress = MAX30102_ADDR_HEARTSENSOR;
-//
-//        i2cTransaction.writeCount = 2;
-//        i2cTransaction.readCount = 1;
-//        txBuffer[0] = MAX30102_READ_PTR;
-//        txBuffer[1] = increment;
-//        I2C_transfer(i2c, &i2cTransaction);
-//
-//        increment++;
-//
-//        i2cTransaction.writeCount = 2;
-//        i2cTransaction.readCount = 1;
-//        txBuffer[0] = MAX30102_WRITE_PTR;
-//        txBuffer[1] = increment;
-//        I2C_transfer(i2c, &i2cTransaction);
-//
-//        i2cTransaction.writeCount = 1;
-//        i2cTransaction.readCount = 3;
-//        txBuffer[0] = MAX30102_WRITE_PTR;
-//        if (I2C_transfer(i2c, &i2cTransaction))
-//        {
-//            Display_printf(hDisplaySerial, 0, 0, "write: %x ", rxBuffer[0]);
-//            Display_printf(hDisplaySerial, 0, 0, "overflow: %x", rxBuffer[1]);
-//            Display_printf(hDisplaySerial, 0, 0, "read: %x", rxBuffer[2]);
-//        }
-//
-//        i2cTransaction.writeCount = 1;
-//        i2cTransaction.readCount = 7;
-//        txBuffer[0] = MAX30102_DATA_REG;
-//
-//        uint32_t heartbeat = 0;
-//        uint32_t heartbeat2 = 0;
-//        if (I2C_transfer(i2c, &i2cTransaction))
-//        {
-//            int a;
-//            for (a = 0; a < 3; a++)
-//            {
-//               // Display_printf(hDisplaySerial, 0, 0, "LED1: %x", rxBuffer[a]);max30102////////////////////////
-//                heartbeat = heartbeat << 8 | (rxBuffer[a] & 0xFF);
-//            }
-//            for (a = 3; a < 6; a++)
-//            {
-//               // Display_printf(hDisplaySerial, 0, 0, "LED2: %x", rxBuffer[a]);   max30102////////////////////////
-//                heartbeat2 = heartbeat2 << 8 | (rxBuffer[a] & 0xFF);
-//            }
-//            //Display_printf(hDisplaySerial, 0, 0, "EXTRA: %x", rxBuffer[6]);max30102////////////////////////
-//        }
-//
-//        //Display_printf(hDisplaySerial, 0, 0, "Value1: %u", heartbeat);
-//        //Display_printf(hDisplaySerial, 0, 0, "Value2: %u", heartbeat2);
-//        heartbeat = heartbeat >> 8;
-//        //Display_printf(hDisplaySerial, 0, 0, "Scaled: %u", heartbeat);
-//        latestAdcValue[4] = (uint16_t) heartbeat;
-////        if(I2C_transfer(i2c, &i2cTransaction))
-////        {
-////            Display_printf(hDisplaySerial, 0, 0, "DATA: %x\n", rxBuffer[0]);//max30102////////////////////////
-////        }
-//
-//        i2cTransaction.writeCount = 1;
-//        i2cTransaction.readCount = 1;
-//        txBuffer[0] = 0x00;
-//        if (I2C_transfer(i2c, &i2cTransaction))
-//        {
-//            if (rxBuffer[0] & 0x80 == 0x80)
-//            {
-//                Display_printf(hDisplaySerial, 0, 0,
-//                               "32 samples are available");
-//            }
-//            if (rxBuffer[0] & 0x40 == 0x40)
-//            {
-//                i2cTransaction.writeCount = 2;
-//                i2cTransaction.readCount = 1;
-//                txBuffer[0] = MAX30102_READ_PTR;
-//                txBuffer[1] = increment;
-//                I2C_transfer(i2c, &i2cTransaction);
-//
-//                increment++;
-//
-//                if (increment == 0x20)
-//                {
-//                    increment = 0x00;
-//                }
-//                i2cTransaction.writeCount = 2;
-//                i2cTransaction.readCount = 1;
-//                txBuffer[0] = MAX30102_WRITE_PTR;
-//                txBuffer[1] = increment;
-//                I2C_transfer(i2c, &i2cTransaction);
-//
-//                i2cTransaction.writeCount = 1;
-//                i2cTransaction.readCount = 1;
-//                txBuffer[0] = MAX30102_DATA_REG;
-//                if (I2C_transfer(i2c, &i2cTransaction))
-//                {
-//                    //Display_printf(hDisplaySerial, 0, 0, "data: %x",                   max30102////////////////////////
-//                                  // rxBuffer[0]);
-//                }
-//            }
-//        }
+        latestAdcValue[6] = bmg250data.y;
+        latestAdcValue[7] = bmg250data.z;
 
         uint32_t events = Event_pend(nodeEventHandle, 0, NODE_EVENT_ALL, BIOS_WAIT_FOREVER);
 
-        while(!proceed)
-        {
+        while(!proceed) {
          //idle
          bmg250_i2c_delay_ms(1);
-
         }
         proceed = false;
 
-       curTime = time(&curTime);
+        curTime = time(&curTime);
 
-       old_time_ms = curr_time_ms;
-       struct timespec tm;
-       clock_settime(CLOCK_REALTIME, &tm);
-       clock_gettime(CLOCK_REALTIME, &tm);
+        old_time_ms = curr_time_ms;
+        struct timespec tm;
+        clock_settime(CLOCK_REALTIME, &tm);
+        clock_gettime(CLOCK_REALTIME, &tm);
 
-       curr_time_ms = (float) tm.tv_nsec / 1000000;
+        curr_time_ms = (float) tm.tv_nsec / 1000000;
 
-       if (curr_time_ms > old_time_ms)
-           time_seg_ms = curr_time_ms - old_time_ms;
-       else
-           time_seg_ms = 1000 - old_time_ms + curr_time_ms;
-       curTimeStr = ctime(&curTime);
+        if (curr_time_ms > old_time_ms)
+            time_seg_ms = curr_time_ms - old_time_ms;
+        else
+            time_seg_ms = 1000 - old_time_ms + curr_time_ms;
+        curTimeStr = ctime(&curTime);
 
-       //Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s)", (acceleration_x - initialOffset_x), (acceleration_y - initialOffset_y), (acceleration_z - initialOffset_z), (long long)curTime);
-       Display_printf(hDisplaySerial, 0, 0,
-                      "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s) Time Segment: %f(ms)",
-                      (acceleration_x), (acceleration_y), (acceleration_z), (long long) curTime, (float) time_seg_ms);
-        NodeRadioTask_sendAdcData(latestAdcValue); // send data from transmitter to receiver
-        datacounter++;
-        Display_printf(hDisplaySerial, 0, 0,
-                                         "Counter: %u\n", datacounter);
-        latestAdcValue[8]=datacounter;
-        //Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
+        //Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s)", (acceleration_x - initialOffset_x), (acceleration_y - initialOffset_y), (acceleration_z - initialOffset_z), (long long)curTime);
+        Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s) Time Segment: %f(ms)", (acceleration_x), (acceleration_y), (acceleration_z), (long long) curTime, (float) time_seg_ms);
+            NodeRadioTask_sendAdcData(latestAdcValue); // send data from transmitter to receiver
+            datacounter++;
+            Display_printf(hDisplaySerial, 0, 0, "Counter: %u\n", datacounter);
+            latestAdcValue[8]=datacounter;
+            //Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
 
-        //usleep(10000); //sleep for 1 seconds
+            //usleep(10000); //sleep for 1 seconds
     }
+
     I2C_close(i2c);
     close_all_adc();
     return (NULL);
