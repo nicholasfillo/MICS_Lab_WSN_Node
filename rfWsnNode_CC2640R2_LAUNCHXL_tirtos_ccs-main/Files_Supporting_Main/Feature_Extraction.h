@@ -79,7 +79,7 @@ struct _Feature_Extraction
 typedef struct _Feature_Extraction Feature_Extraction;
 
 
-//Functon to Extract Features
+//Function to Extract Features
 float find_mean(Feature_Extraction* feature_extraction);
 float find_median(Feature_Extraction* feature_extraction);
 float find_max(Feature_Extraction* feature_extraction);
@@ -95,19 +95,12 @@ float find_skewness(Feature_Extraction* feature_extraction);
 float absolut_energy(Feature_Extraction* feature_extraction);
 float absolute_sum_of_changes(Feature_Extraction* feature_extraction);
 float time_series_complexity(Feature_Extraction* feature_extraction);
-float find_Q1(Feature_Extraction* feature_extraction, int percentile);
-float find_Q3(Feature_Extraction* feature_extraction, int percentile);
+float percentile(Feature_Extraction* feature_extraction, int percentile);
 
 void extract_time_domain_features(Feature_Extraction* feature_extraction, int specification);
 
 //Sort array Functions
 void swap(float *x, float *y);
 void sort_arr(Feature_Extraction* feature_extraction);
-
-//Initialize Struct
-//Feature_Extraction Feature_Extraction_Construct(); 
-
-
-
 
 #endif /*FEATURE_EXTRACTION_H*/

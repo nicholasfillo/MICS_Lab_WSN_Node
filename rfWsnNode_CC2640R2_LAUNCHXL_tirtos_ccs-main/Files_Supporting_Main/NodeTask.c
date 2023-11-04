@@ -21,6 +21,7 @@
 #include "NodeTask.h"
 #include "NodeRadioTask.h"
 #include "Feature_Extraction.h"
+#include "randomForest.h"
 #include <ti/drivers/ADC.h>
 //#include "adcsinglechannel.c"
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -636,10 +637,9 @@ void *mainThread(void *arg0) {
     i2cTransaction.writeBuf = txBuffer;
     i2cTransaction.readBuf = rxBuffer;
 
-    /* I2C setup for BMA400 */
+    /* I2C setup for BMA400 Accelerometer*/
     i2cTransaction.slaveAddress = BMA400_ADDR_ACCELEROMETER; // determine the slave address
 
-    /*  Accelerometer Checks  */
     /* Check if the accelerometer is connected */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
@@ -685,7 +685,7 @@ void *mainThread(void *arg0) {
         Display_printf(hDisplaySerial, 0, 0, "Error. Mode Undetermined");
     }
 
-    /* Verify and check the range (acceleration)*/
+    /* Verify and check the range of Accelerometer */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMA400_ACC_CONFIG1;
@@ -702,14 +702,14 @@ void *mainThread(void *arg0) {
     }
 
 
-    /* I2C setup for BMG250 (Gyroscope)*/
+    /* I2C setup for BMG250 (Gyroscope) */
     int8_t bmg250_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
     int8_t bmg250_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
     void bmg250_i2c_delay_ms(uint32_t period);
 
     i2cTransaction.slaveAddress = BMG250_ADDR_GYRO; // determine the slave address
 
-    /* Check if the gyroscope is connected */
+    /* Check if BMG_250 gyroscope is connected */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_CHIP_ID;
@@ -726,7 +726,6 @@ void *mainThread(void *arg0) {
     }
 
     /* Change the mode from sleep mode to normal mode by writing into registers */
-
     struct bmg250_dev  bmg250;
     struct bmg250_cfg  bmg250cfg;
     struct bmg250_sensor_data bmg250data;
@@ -763,9 +762,9 @@ void *mainThread(void *arg0) {
     bmg250cfg.range=BMG250_RANGE_500_DPS;
 
     z = bmg250_set_sensor_settings(&bmg250cfg, &bmg250);
-    z = bmg250_get_sensor_settings(&bmg250cfg, &bmg250);
 
-    /* Verify and check the mode of the gyroscope */
+
+    /* Verify and check the mode of BMG_250 gyroscope */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_CHECK_STATUS;
@@ -787,7 +786,7 @@ void *mainThread(void *arg0) {
         Display_printf(hDisplaySerial, 0, 0, "Error. Mode Undetermined");
     }
 
-    /* Verify and check the range (gyroscope)*/
+    /* Verify and check the range of BMG_250 Gyroscope */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_GYRO_CONFIG1;
@@ -803,9 +802,11 @@ void *mainThread(void *arg0) {
         Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g", gyroaccrange);
     }
 
-    /* I2C setup for BMI270 */
+
+    /* I2C setup for BMI_270 */
     i2cTransaction.slaveAddress = BMI270_ADDR_GYRO; // determine the slave address
-    /* Check if the gyroscope is connected */
+
+    /* Check if BMI_270 gyroscope is connected */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMI270_CHIP_ID;
@@ -877,7 +878,7 @@ void *mainThread(void *arg0) {
             Display_printf(hDisplaySerial, 0, 0, "Initilization Success");
     }
 
-    /* Verify and check the mode of the gyroscope */
+    /* Verify and check the mode of BMI_270 Gyroscope */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = 0x7D;
@@ -900,7 +901,7 @@ void *mainThread(void *arg0) {
         //while(1);
     }
 
-    /* Verify and check the range (gyroscope)*/
+    /* Verify and check the range of BMI_270 Gyroscope */
     i2cTransaction.writeCount = 1;
     i2cTransaction.readCount = 1;
     txBuffer[0] = BMG250_GYRO_CONFIG1;
@@ -916,32 +917,26 @@ void *mainThread(void *arg0) {
         Display_printf(hDisplaySerial, 0, 0, "ayroACC range: %d g", gyroaccrange);
     }
 
-    //GPTimerCC26XX_Params params;
-    //GPTimerCC26XX_Params_init(&params);
-    //params.width          = GPT_CONFIG_32BIT;
-    //params.mode           = GPT_MODE_PERIODIC_UP;
-    //params.debugStallMode = GPTimerCC26XX_DEBUG_STALL_OFF;
-    //hTimer = GPTimerCC26XX_open(Board_GPTIMER0A, &params);
-    //if(hTimer == NULL) {
-    //}
-    //GPTimerCC26XX_Value loadVal = 4799999;
-    //GPTimerCC26XX_setLoadValue(hTimer, loadVal);
-    //GPTimerCC26XX_registerInterrupt(hTimer, timerCallback, GPT_INT_TIMEOUT);
-    //GPTimerCC26XX_start(hTimer);
+    /*GPTimerCC26XX_Params params;
+    GPTimerCC26XX_Params_init(&params);
+    params.width          = GPT_CONFIG_32BIT;
+    params.mode           = GPT_MODE_PERIODIC_UP;
+    params.debugStallMode = GPTimerCC26XX_DEBUG_STALL_OFF;
+    hTimer = GPTimerCC26XX_open(Board_GPTIMER0A, &params);
+    if(hTimer == NULL) {
+    }
+    GPTimerCC26XX_Value loadVal = 4799999;
+    GPTimerCC26XX_setLoadValue(hTimer, loadVal);
+    GPTimerCC26XX_registerInterrupt(hTimer, timerCallback, GPT_INT_TIMEOUT);
+    GPTimerCC26XX_start(hTimer);*/
 
     /* Initialize all of the Analog to Digital converters */
     init_all_adc();
-
 
     /*Start of Infinite while loop. This while loop is where the Gyroscope and Acellerometer will continuously take in data and calculate the behavior of the pig*/
     while (1) {
 
         read_adc();
-
-        /* I2C setup for TMP117 */
-        i2cTransaction.slaveAddress = TMP117_ADDR_GND_TEMPSENSOR;
-        i2cTransaction.writeCount = 1;
-        i2cTransaction.readCount = 2;
 
         /* Test accelerometer connectivity */
         bool accelerometerConnected = false;
@@ -1005,11 +1000,12 @@ void *mainThread(void *arg0) {
 
         //END OF CALIBRATION
 
+        /* Read Accelerometer data and calculate values */
         txBuffer[0] = BMA400_RESULT_REG_START;
         if (I2C_transfer(i2c, &i2cTransaction)) {
             rawAcc_x = (rxBuffer[1] << 8) | (rxBuffer[0]);
             rawAcc_y = (rxBuffer[3] << 8) | (rxBuffer[2]);
-            rawAcc_z = (rxBuffer[5] << 8) | (rxBuffer[4]);
+            rawAcc_z = (rxBuffer[5] << 8) | (rxBuffer[4]); //Note: The z value for the acceleration will be around 9.8 m/s^2 as default to account for gravity
             latestAdcValue[1] = rawAcc_x;
             latestAdcValue[2] = rawAcc_y;
             latestAdcValue[3] = rawAcc_z;
@@ -1026,32 +1022,31 @@ void *mainThread(void *arg0) {
                 realAcc_z = (int) rawAcc_z - 4096;
             }
             
-            int i;
             //Acceleration Values
             //Steps: 
             //      1.) Find the desired acceleration value (Ex: acceleraton_x)
             //      2.) Populate the corresponding field in the Feature Extraction Array with the acceleration value
-            //      3.) Add the acceleration value to the coresponding array and pop the oldest value
-            //      4.) Set the acceleration array to the input array of the feature extraction struct and find all corresponing acceleration features using the extract_time_domain_features function
+            //      3.) Add the acceleration value to the corresponding array and pop the oldest value
+            //      4.) Set the acceleration array to the input array of the feature extraction struct and find all corresponding acceleration features using the extract_time_domain_features function
 
+            int i;
             //Acceleration X
             acceleration_x = (realAcc_x) * 0.019178;                    
             feature_extraction->accel_x.acc_x = acceleration_x;
-            for (i = 1; i < 3; i ++) {
-                acceleration_x_arr[i + 1] = acceleration_x_arr[i];
-            }  
+            for (i = 3; i > 0; i --) {
+                acceleration_x_arr[i] = acceleration_x_arr[i - 1]; // Note: The input array for the extract_time_domain_features function is the newest 
+            }                                                      //       value of the Accelerometer/Gyroscope and the three previous values 
             acceleration_x_arr[0] = acceleration_x;
             for (i = 0; i < 4; i ++) {
-                feature_extraction->input_arr[i] = acceleration_x_arr[i];
+                feature_extraction->input_arr[i] = acceleration_x_arr[i]; //Populate the input array
             }
-            extract_time_domain_features(feature_extraction, ACC_X);
-            Display_printf(hDisplaySerial, 0, 0, "Accelerometer Euclidian: %f ", feature_extraction->accel_x.acc_x_euclidian_norm);
+            extract_time_domain_features(feature_extraction, ACC_X); //Extract all time domain features for the Acceleromter/Gyrosope value at hand
 
             //Acceleration Y
             acceleration_y = (realAcc_y) * 0.019178;
             feature_extraction->accel_y.acc_y = acceleration_y;
-            for (i = 1; i < 3; i ++) {
-                acceleration_y_arr[i + 1] = acceleration_y_arr[i]; 
+            for (i = 3; i > 0; i --) {
+                acceleration_y_arr[i] = acceleration_y_arr[i - 1]; 
             }  
             acceleration_y_arr[0] = acceleration_y;
             for (i = 0; i < 4; i ++) {
@@ -1062,8 +1057,8 @@ void *mainThread(void *arg0) {
             //Acceleration Z
             acceleration_z = (realAcc_z) * 0.019178;
             feature_extraction->accel_z.acc_z = acceleration_z;
-            for (i = 1; i < 3; i ++) {
-                acceleration_z_arr[i + 1] = acceleration_z_arr[i]; 
+            for (i = 3; i > 0; i --) {
+                acceleration_z_arr[i] = acceleration_z_arr[i - 1]; 
             }  
             acceleration_z_arr[0] = acceleration_z;
             for (i = 0; i < 4; i ++) {
@@ -1074,128 +1069,125 @@ void *mainThread(void *arg0) {
             //Acceleration Magnitude
             acceleration_magnitude = sqrtf((acceleration_x * acceleration_x) + (acceleration_y * acceleration_y) + (acceleration_z * acceleration_y));
             feature_extraction->accel_mag.acc_magnitude = acceleration_magnitude;
-            for (i = 1; i < 3; i ++) {
-                acceleration_magnitude_arr[i + 1] = acceleration_magnitude_arr[i]; 
+            for (i = 3; i > 0; i --) {
+                acceleration_magnitude_arr[i] = acceleration_magnitude_arr[i - 1]; 
             }  
             acceleration_magnitude_arr[0] = acceleration_magnitude;
             for (i = 0; i < 4; i ++) {
                 feature_extraction->input_arr[i] = acceleration_magnitude_arr[i];
             }
             extract_time_domain_features(feature_extraction, ACC_MAG);
+
+            /*Display Acceleration Data*/
+            Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s) Time Segment: %f(ms)", (acceleration_x), (acceleration_y), (acceleration_z), (long long) curTime, (float) time_seg_ms);
+            Display_printf(hDisplaySerial, 0, 0, "Accelerometer Euclidian X: %f ", feature_extraction->accel_x.acc_x_euclidian_norm);
         }
         else {
             Display_printf(hDisplaySerial, 0, 0, "I2C Bus fault. No Acc Data Read.");
         }
-        /* Get the time and calculate the current time segment */
-
-        //////////////////////////////////////////////////////////////////////////////////bma400
-        //???
-
-        if (acceleration_z > 11) {
-            piggy = sitting;
-        }
-        else if (acceleration_z < 9) {
-            piggy = standing;
-        }
-
-        if (piggy == standing) {
-            //Display_printf(hDisplaySerial, 0, 0, "This pig is most likely standing/moving\n");
-        }
-        else {
-            //Display_printf(hDisplaySerial, 0, 0, "This pig is most likely sitting/sleeping\n");
-        }
 
 
-        /* Read Gyroscope */
-        bool gyroConnected = false;
+        /* Read Gyroscope data and calculate values */
+        //bool gyroConnected = false;
 
+        txBuffer[0] = BMG250_RESULT_REG_START;
         i2cTransaction.slaveAddress = BMG250_ADDR_GYRO;
         i2cTransaction.writeCount = 0;
         i2cTransaction.readCount = 1;
 
         if (I2C_transfer(i2c, &i2cTransaction)) {
-            gyroConnected = true;
+            /* Get Gyroscope Data */
+            z = bmg250_get_sensor_data(BMG250_DATA_SEL, &bmg250data, &bmg250);
+            bmg250.delay_ms(45);
+            //bmg250data.sensortime=0;// will delete later
+            
+            //Gyroscope Values
+            //Steps: 
+            //      1.) Find the desired gyroscope value (Ex: gyro_x)
+            //      2.) Populate the corresponding field in the Feature Extraction Array with the gyroscope value
+            //      3.) Add the gyroscope value to the coresponding array and pop the oldest value
+            //      4.) Set the gyroscope array to the input array of the feature extraction struct and find all corresponing gyroscope features using the extract_time_domain_features function
+            int i;
+
+            //Gyroscope X
+            gyro_x = bmg250data.x;
+            feature_extraction->gyro_x.gyro_x = gyro_x;
+            for (i = 3; i > 0; i --) {
+                gyro_x_arr[i] = gyro_x_arr[i - 1];
+            }  
+            gyro_x_arr[0] = gyro_x;
+            for (i = 0; i < 4; i ++) {
+                feature_extraction->input_arr[i] = gyro_x_arr[i];
+            }
+            extract_time_domain_features(feature_extraction, GYRO_X);
+
+            //Gyroscope Y
+            gyro_y = bmg250data.y;
+            feature_extraction->gyro_y.gyro_y = gyro_y;
+            for (i = 3; i < 0; i --) {
+                gyro_y_arr[i] = gyro_y_arr[i - 1];
+            }  
+            gyro_y_arr[0] = gyro_y;
+            for (i = 0; i < 4; i ++) {
+                feature_extraction->input_arr[i] = gyro_y_arr[i];
+            }
+            extract_time_domain_features(feature_extraction, GYRO_Y);
+
+            //Gyroscope Z
+            gyro_z = bmg250data.z;
+            feature_extraction->gyro_z.gyro_z = gyro_z;
+            for (i = 3; i > 0; i --) {
+                gyro_z_arr[i] = gyro_z_arr[i - 1];
+            }  
+            gyro_z_arr[0] = gyro_z;
+            for (i = 0; i < 4; i ++) {
+                feature_extraction->input_arr[i] = gyro_z_arr[i];
+            }
+            extract_time_domain_features(feature_extraction, GYRO_Z);
+
+            //Gyroscope Magnitude
+            gyro_magnitude = sqrtf((gyro_x * gyro_x) + (gyro_y * gyro_y) + (gyro_z * gyro_z));
+            feature_extraction->gyro_mag.gyro_magnitude = gyro_magnitude;
+            for (i = 3; i > 0; i --) {
+                gyro_magnitude_arr[i] = gyro_magnitude_arr[i - 1];
+            }  
+            gyro_magnitude_arr[0] = gyro_magnitude;
+            for (i = 0; i < 4; i ++) {
+                feature_extraction->input_arr[i] = gyro_magnitude_arr[i];
+            }
+            extract_time_domain_features(feature_extraction, GYRO_MAG);
+
+            Display_printf(hDisplaySerial, 0, 0, "BMG250_GYRO_data  X: %d \t Y: %d \t Z: %d \t Sensor-time : %lu\n", (bmg250data.x), (bmg250data.y), (bmg250data.z), (long long) bmg250data.sensortime);
+            Display_printf(hDisplaySerial, 0, 0, "Gyroscope Euclidian Z: %f ", feature_extraction->gyro_z.gyro_z_euclidian_norm);
+            latestAdcValue[5] = bmg250data.x;
+            latestAdcValue[6] = bmg250data.y;
+            latestAdcValue[7] = bmg250data.z;
         }
-        if(!gyroConnected) {
-            //while(1)
-            /* Error GyroScope didn't connect */
+        else {
+            Display_printf(hDisplaySerial, 0, 0, "I2C Bus fault. No Gyro Data Read.");
         }
 
-        //int32_t temperature_bmg250;
+        int randomForest_extraction = randomForest(feature_extraction);
 
-
-        z=bmg250_get_sensor_data(BMG250_DATA_SEL,&bmg250data,&bmg250);
-        bmg250.delay_ms(45);
-        bmg250data.sensortime=0;// will delete later
-        
-        //Gyroscope Values
-        //Steps: 
-        //      1.) Find the desired gyroscope value (Ex: gyro_x)
-        //      2.) Populate the corresponding field in the Feature Extraction Array with the gyroscope value
-        //      3.) Add the gyroscope value to the coresponding array and pop the oldest value
-        //      4.) Set the gyroscope array to the input array of the feature extraction struct and find all corresponing gyroscope features using the extract_time_domain_features function
-        int i;
-
-        //Gyroscope X
-        bmg250data.x = gyro_x;
-        feature_extraction->gyro_x.gyro_x = gyro_x;
-        for (i = 1; i < 3; i ++) {
-            gyro_x_arr[i + 1] = gyro_x_arr[i];
-        }  
-        gyro_x_arr[0] = gyro_x;
-        for (i = 0; i < 4; i ++) {
-            feature_extraction->input_arr[i] = gyro_x_arr[i];
+        if (randomForest_extraction == 0) {
+            Display_printf(hDisplaySerial, 0, 0, "Pig is Drinking");
         }
-        extract_time_domain_features(feature_extraction, GYRO_X);
-
-        //Gyroscope Y
-        bmg250data.y = gyro_y;
-        feature_extraction->gyro_y.gyro_y = gyro_y;
-        for (i = 1; i < 3; i ++) {
-            gyro_y_arr[i + 1] = gyro_y_arr[i];
-        }  
-        gyro_y_arr[0] = gyro_y;
-        for (i = 0; i < 4; i ++) {
-            feature_extraction->input_arr[i] = gyro_y_arr[i];
+        else if (randomForest_extraction == 1) {
+            Display_printf(hDisplaySerial, 0, 0, "Pig is Eating");
         }
-        extract_time_domain_features(feature_extraction, GYRO_Y);
-
-        //Gyroscope Z
-        bmg250data.y = gyro_z;
-        feature_extraction->gyro_z.gyro_z = gyro_z;
-        for (i = 1; i < 3; i ++) {
-            gyro_z_arr[i + 1] = gyro_z_arr[i];
-        }  
-        gyro_z_arr[0] = gyro_z;
-        for (i = 0; i < 4; i ++) {
-            feature_extraction->input_arr[i] = gyro_z_arr[i];
+        else if (randomForest_extraction == 2) {
+            Display_printf(hDisplaySerial, 0, 0, "Pig is Laying Down");
         }
-        extract_time_domain_features(feature_extraction, GYRO_Z);
-
-        //Gyroscope Magnitude
-        gyro_magnitude = sqrtf((gyro_x * gyro_x) + (gyro_y * gyro_y) + (gyro_z * gyro_z));
-        feature_extraction->gyro_mag.gyro_magnitude = gyro_magnitude;
-        for (i = 1; i < 3; i ++) {
-            gyro_magnitude_arr[i + 1] = gyro_magnitude_arr[i];
-        }  
-        gyro_magnitude_arr[0] = gyro_magnitude;
-        for (i = 0; i < 4; i ++) {
-            feature_extraction->input_arr[i] = gyro_magnitude_arr[i];
+        else if (randomForest_extraction == 3) {
+            Display_printf(hDisplaySerial, 0, 0, "Pig is Standing Up");
         }
-        extract_time_domain_features(feature_extraction, GYRO_MAG);
-
-        Display_printf(hDisplaySerial, 0, 0, "BMG250_GYRO_data  X: %d \t Y: %d \t Z: %d \t Sensor-time : %lu\n", (bmg250data.x), (bmg250data.y), (bmg250data.z), (long long) bmg250data.sensortime);
-        latestAdcValue[5] = bmg250data.x;
-        latestAdcValue[6] = bmg250data.y;
-        latestAdcValue[7] = bmg250data.z;
-
-        uint32_t events = Event_pend(nodeEventHandle, 0, NODE_EVENT_ALL, BIOS_WAIT_FOREVER);
-
-        while(!proceed) {
-         //idle
-         bmg250_i2c_delay_ms(1);
+        else if (randomForest_extraction == 4) {
+            Display_printf(hDisplaySerial, 0, 0, "Pig is Walking");
         }
-        proceed = false;
+        else if (randomForest_extraction == 5) {
+            Display_printf(hDisplaySerial, 0, 0, "Unknown Pig Behavior");
+        }
+
 
         curTime = time(&curTime);
 
@@ -1212,15 +1204,13 @@ void *mainThread(void *arg0) {
             time_seg_ms = 1000 - old_time_ms + curr_time_ms;
         curTimeStr = ctime(&curTime);
 
-        //Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s)", (acceleration_x - initialOffset_x), (acceleration_y - initialOffset_y), (acceleration_z - initialOffset_z), (long long)curTime);
-        Display_printf(hDisplaySerial, 0, 0, "Acceleration (m/s2): %f(X) %f(Y) %f(Z) Time: %lu(s) Time Segment: %f(ms)", (acceleration_x), (acceleration_y), (acceleration_z), (long long) curTime, (float) time_seg_ms);
-            NodeRadioTask_sendAdcData(latestAdcValue); // send data from transmitter to receiver
-            datacounter++;
-            Display_printf(hDisplaySerial, 0, 0, "Counter: %u\n", datacounter);
-            latestAdcValue[8]=datacounter;
-            //Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
+        NodeRadioTask_sendAdcData(latestAdcValue); // send data from transmitter to receiver
+        datacounter++;
+        Display_printf(hDisplaySerial, 0, 0, "Counter: %u\n", datacounter);
+        latestAdcValue[8]=datacounter;
+        //Event_post(nodeEventHandle, NODE_EVENT_NEW_ADC_VALUE);
 
-            //usleep(10000); //sleep for 1 seconds
+        //usleep(10000); //sleep for 1 seconds
     }
 
     I2C_close(i2c);
@@ -1246,11 +1236,9 @@ int8_t bmg250_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t
         }
         else {
             int i;
-            for(i=0; i<len;i++)
-            {
-            data[i] = rxBuffer[i];
-
-        }
+            for(i=0; i<len;i++) {
+                data[i] = rxBuffer[i];
+            }
          //   data=rxBuffer;
         }
 

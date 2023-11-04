@@ -684,21 +684,21 @@ int8_t bmg250_get_sensor_data(uint8_t data_sel, struct bmg250_sensor_data *gyro,
                 /* gyro X axis data */
                 gyro->x = (int16_t)(((uint16_t)msb << 8) | lsb);
                 //latestAdcValue[5] = gyro->x;
-                gyro->x =(gyro->x/65.6);// might change this based on differnt sensitivty
+                gyro->x =(gyro->x/65.6);// might change this based on different sensitivity
                 lsb = data_array[idx++];
                 msb = data_array[idx++];
 
                 /* gyro Y axis data */
                 gyro->y = (int16_t)(((uint16_t)msb << 8) | lsb);
                 //latestAdcValue[6] = gyro->y;
-                gyro->y =(gyro->y/65.6);// might change this based on differnt sensitivty
+                gyro->y =(gyro->y/65.6);// might change this based on different sensitivity
                 lsb = data_array[idx++];
                 msb = data_array[idx++];
 
                 /* gyro Z axis data */
                 gyro->z = (int16_t)(((uint16_t)msb << 8) | lsb);
                 //latestAdcValue[7] = gyro->z;
-                gyro->z =(gyro->z/65.6);// might change this based on differnt sensitivty
+                gyro->z =(gyro->z/65.6);// might change this based on different sensitivity
 
                 /* update sensor-time data as 0 */
                 gyro->sensortime = 0;

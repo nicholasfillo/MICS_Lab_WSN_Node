@@ -19,7 +19,16 @@ float find_mean(Feature_Extraction* feature_extraction) {
 }
 
 float find_median(Feature_Extraction* feature_extraction) {
-    sort_arr(feature_extraction);
+    int i, j;
+    for (i = 0; i < feature_extraction->input_arr_size - 1; i++) {
+        for (j = 0; j < feature_extraction->input_arr_size - i - 1; j ++) {
+            if (feature_extraction->input_arr[j] > feature_extraction->input_arr[j + 1]) {
+                int temp = feature_extraction->input_arr[j];
+                feature_extraction->input_arr[j] = feature_extraction->input_arr[j + 1];
+                feature_extraction->input_arr[j + 1] = temp;
+            }
+        } 
+    }
 
     return ((feature_extraction->input_arr[1] + feature_extraction->input_arr[2]) / 2);
 }
@@ -66,10 +75,10 @@ float find_std(Feature_Extraction* feature_extraction) {
 float euclidian_norm(Feature_Extraction* feature_extraction) {
     int i;
     float euclidian_norm_sum = 0;
-    float euclidian_norm_arr[feature_extraction->input_arr_size];
+    float euclidian_norm; 
     for (i = 0; i < feature_extraction->input_arr_size; i ++) {
-        euclidian_norm_arr[i] = fabs(feature_extraction->input_arr[i]) * fabs(feature_extraction->input_arr[i]);
-        euclidian_norm_sum += euclidian_norm_arr[i];
+        euclidian_norm = fabs(feature_extraction->input_arr[i]) * fabs(feature_extraction->input_arr[i]);
+        euclidian_norm_sum += euclidian_norm;
     }
     return sqrtf(euclidian_norm_sum);
 }
@@ -113,9 +122,9 @@ float sum_of_squares_error(Feature_Extraction* feature_extraction) {
 int zero_crossing_rate(Feature_Extraction* feature_extraction) {
     int count = 0;
     int i;
-    for (i = 0; i < feature_extraction->input_arr_size; i ++) {
-        if ((feature_extraction->input_arr[i-1] > 0 && feature_extraction->input_arr[i]) || (feature_extraction->input_arr[i-1] < 0 && feature_extraction->input_arr[i] >= 0)) {
-            count += 1;
+    for (i = 1; i < feature_extraction->input_arr_size; i ++) {
+        if ((feature_extraction->input_arr[i] > 0 && feature_extraction->input_arr[i - 1] <= 0) || (feature_extraction->input_arr[i] < 0 && feature_extraction->input_arr[i - 1] >= 0)) {
+            count ++;
         }
     }
     return count;
@@ -175,29 +184,29 @@ float absolute_sum_of_changes(Feature_Extraction* feature_extraction) {
 }
 
 float time_series_complexity(Feature_Extraction* feature_extraction) {
-    float diff[feature_extraction->input_arr_size - 1];
-    float complexity;
+    float complexity = 0.0;
+    float *diff = malloc((feature_extraction->input_arr_size - 1) * sizeof(float));
     int i;
+
     for (i = 0; i < feature_extraction->input_arr_size - 1; i ++) {
         diff[i] = feature_extraction->input_arr[i + 1] - feature_extraction->input_arr[i];
     }
 
-    for (i = 0; i < feature_extraction->input_arr_size; i ++) {
-        complexity += (diff[i] * diff[i]);
+    for (i = 0; i < feature_extraction->input_arr_size - 1; i ++) {
+        complexity += diff[i] * diff[i];
     }
+
     complexity = sqrtf(complexity);
 
+    free(diff);
+    
     return complexity;
 }
 
-float find_Q1(Feature_Extraction* feature_extraction, int percentile) {
-    sort_arr(feature_extraction);
-
-}
-
-float find_Q3(Feature_Extraction* feature_extraction, int percentile) {
-    sort_arr(feature_extraction);
-
+float percentile(Feature_Extraction* feature_extraction, int percentile){
+    int index = (int)((percentile / 100) * (feature_extraction->input_arr_size - 1));
+    float fraction = (percentile / 100) * (feature_extraction->input_arr_size - 1) - index;
+    return feature_extraction->input_arr[index] + fraction * (feature_extraction->input_arr[index + 1]);
 }
 
 void swap(float *x, float *y) {
@@ -227,9 +236,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
     float std = find_std(feature_extraction);
     float median = find_median(feature_extraction);
 
-    //Q1 = 
-    //Q3 =
-    //IQR = Q1 - Q3
+    float Q1 = percentile(feature_extraction, 25); 
+    float Q3 = percentile(feature_extraction, 75);
+    float IQR = Q3 - Q1;
 
     float euclidian_norm_td = euclidian_norm(feature_extraction);
     float mean_absolute_deviation_td = mean_absolute_deviation(feature_extraction);
@@ -249,7 +258,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->accel_x.acc_x_max = max;
             feature_extraction->accel_x.acc_x_min = min;
             feature_extraction->accel_x.acc_x_median = median;
-
+            feature_extraction->accel_x.acc_x_Q1 = Q1;
+            feature_extraction->accel_x.acc_x_Q3 = Q3;
+            feature_extraction->accel_x.acc_x_IQR = IQR;
             feature_extraction->accel_x.acc_x_euclidian_norm = euclidian_norm_td;
             feature_extraction->accel_x.acc_x_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->accel_x.acc_x_mean_square = mean_square_td;
@@ -268,7 +279,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->accel_y.acc_y_max = max;
             feature_extraction->accel_y.acc_y_min = min;
             feature_extraction->accel_y.acc_y_median = median;
-
+            feature_extraction->accel_y.acc_y_Q1 = Q1;
+            feature_extraction->accel_y.acc_y_Q3 = Q3;
+            feature_extraction->accel_y.acc_y_IQR = IQR;
             feature_extraction->accel_y.acc_y_euclidian_norm = euclidian_norm_td;
             feature_extraction->accel_y.acc_y_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->accel_y.acc_y_mean_square = mean_square_td;
@@ -287,7 +300,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->accel_z.acc_z_max = max;
             feature_extraction->accel_z.acc_z_min = min;
             feature_extraction->accel_z.acc_z_median = median;
-
+            feature_extraction->accel_z.acc_z_Q1 = Q1;
+            feature_extraction->accel_z.acc_z_Q3 = Q3;
+            feature_extraction->accel_z.acc_z_IQR = IQR;
             feature_extraction->accel_z.acc_z_euclidian_norm = euclidian_norm_td;
             feature_extraction->accel_z.acc_z_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->accel_z.acc_z_mean_square = mean_square_td;
@@ -306,7 +321,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->accel_mag.acc_magnitude_max = max;
             feature_extraction->accel_mag.acc_magnitude_min = min;
             feature_extraction->accel_mag.acc_magnitude_median = median;
-
+            feature_extraction->accel_mag.acc_magnitude_Q1 = Q1;
+            feature_extraction->accel_mag.acc_magnitude_Q3 = Q3;
+            feature_extraction->accel_mag.acc_magnitude_IQR = IQR;
             feature_extraction->accel_mag.acc_magnitude_euclidian_norm = euclidian_norm_td;
             feature_extraction->accel_mag.acc_magnitude_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->accel_mag.acc_magnitude_mean_square = mean_square_td;
@@ -325,7 +342,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->gyro_x.gyro_x_max = max;
             feature_extraction->gyro_x.gyro_x_min = min;
             feature_extraction->gyro_x.gyro_x_median = median;
-
+            feature_extraction->gyro_x.gyro_x_Q1 = Q1;
+            feature_extraction->gyro_x.gyro_x_Q3 = Q3;
+            feature_extraction->gyro_x.gyro_x_IQR = IQR;
             feature_extraction->gyro_x.gyro_x_euclidian_norm = euclidian_norm_td;
             feature_extraction->gyro_x.gyro_x_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->gyro_x.gyro_x_mean_square = mean_square_td;
@@ -344,7 +363,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->gyro_y.gyro_y_max = max;
             feature_extraction->gyro_y.gyro_y_min = min;
             feature_extraction->gyro_y.gyro_y_median = median;
-
+            feature_extraction->gyro_y.gyro_y_Q1 = Q1;
+            feature_extraction->gyro_y.gyro_y_Q3 = Q3;
+            feature_extraction->gyro_y.gyro_y_IQR = IQR;
             feature_extraction->gyro_y.gyro_y_euclidian_norm = euclidian_norm_td;
             feature_extraction->gyro_y.gyro_y_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->gyro_y.gyro_y_mean_square = mean_square_td;
@@ -363,7 +384,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->gyro_z.gyro_z_max = max;
             feature_extraction->gyro_z.gyro_z_min = min;
             feature_extraction->gyro_z.gyro_z_median = median;
-
+            feature_extraction->gyro_z.gyro_z_Q1 = Q1;
+            feature_extraction->gyro_z.gyro_z_Q3 = Q3;
+            feature_extraction->gyro_z.gyro_z_IQR = IQR;
             feature_extraction->gyro_z.gyro_z_euclidian_norm = euclidian_norm_td;
             feature_extraction->gyro_z.gyro_z_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->gyro_z.gyro_z_mean_square = mean_square_td;
@@ -382,7 +405,9 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             feature_extraction->gyro_mag.gyro_magnitude_max = max;
             feature_extraction->gyro_mag.gyro_magnitude_min = min;
             feature_extraction->gyro_mag.gyro_magnitude_median = median;
-
+            feature_extraction->gyro_mag.gyro_magnitude_Q1 = Q1;
+            feature_extraction->gyro_mag.gyro_magnitude_Q3 = Q3;
+            feature_extraction->gyro_mag.gyro_magnitude_IQR = IQR;
             feature_extraction->gyro_mag.gyro_magnitude_euclidian_norm = euclidian_norm_td;
             feature_extraction->gyro_mag.gyro_magnitude_mean_absolute_deviation = mean_absolute_deviation_td;
             feature_extraction->gyro_mag.gyro_magnitude_mean_square = mean_square_td;
@@ -399,16 +424,3 @@ void extract_time_domain_features(Feature_Extraction* feature_extraction, int sp
             break;
     }
 }
-
-//Feature Extraction Struct Initialization
-/*
-Feature_Extraction Feature_Extraction_Construct() {
-    Feature_Extraction feature_extraction;
-    feature_extraction.input_arr_size = 4;
-    
-    int i;
-    for (i = 0; i < 4; i ++) {
-        feature_extraction.input_arr[i] = 0.0;
-    }
-    return feature_extraction;
-}*/
